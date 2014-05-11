@@ -19,7 +19,7 @@ namespace sqlite {
 			wstring _sql;
 			sqlite3_stmt* _stmt;
 			int _inx;
-			template<typename T> class type_call { };
+			//template<typename T> class type_call { };
 
 			void _extract(function<void(void)> call_back){
 				int hresult;
@@ -87,35 +87,36 @@ namespace sqlite {
 				}
 			}
 #pragma region operator <<
-
 			database_binder& operator <<(double val) {
 				if (sqlite3_bind_double(_stmt, _inx, val) != SQLITE_OK)
 					throw exception(sqlite3_errmsg(_db));
 				++_inx;
 				return *this;
 			}
-
+			database_binder& operator <<(float val) {
+				if (sqlite3_bind_double(_stmt, _inx, double(val)) != SQLITE_OK)
+					throw exception(sqlite3_errmsg(_db));
+				++_inx;
+				return *this;
+			}
 			database_binder& operator <<(int val) {
 				if (sqlite3_bind_int(_stmt, _inx, val) != SQLITE_OK)
 					throw exception(sqlite3_errmsg(_db));
 				++_inx;
 				return *this;
 			}
-
 			database_binder& operator <<(sqlite_int64 val) {
 				if (sqlite3_bind_int64(_stmt, _inx, val) != SQLITE_OK)
 					throw exception(sqlite3_errmsg(_db));
 				++_inx;
 				return *this;
 			}
-
 			database_binder& operator <<(string const& txt) {
 				if (sqlite3_bind_text(_stmt, _inx, txt.data(), -1, SQLITE_STATIC) != SQLITE_OK)
 					throw exception(sqlite3_errmsg(_db));
 				++_inx;
 				return *this;
 			}
-
 			database_binder& operator <<(wstring const& txt) {
 				if (sqlite3_bind_text16(_stmt, _inx, txt.data(), -1, SQLITE_STATIC) != SQLITE_OK)
 					throw exception(sqlite3_errmsg(_db));
@@ -124,320 +125,85 @@ namespace sqlite {
 			}
 #pragma endregion
 
-#pragma region get_*
 
-			string get_string(int i){
-				if (sqlite3_column_type(_stmt, i) == SQLITE_NULL) return string();
-				sqlite3_column_bytes(_stmt, i);
-				return (char*)sqlite3_column_text(_stmt, i);
+#pragma region get_col_from_db			
+			void get_col_from_db(int inx, int& i){
+				if (sqlite3_column_type(_stmt, inx) == SQLITE_NULL) i = 0;
+				i = sqlite3_column_int(_stmt, inx);
 			}
-			wstring get_wstring(int i){
-				if (sqlite3_column_type(_stmt, i) == SQLITE_NULL) return wstring();
-				sqlite3_column_bytes16(_stmt, i);
-				return (wchar_t *)sqlite3_column_text16(_stmt, i);
+			void get_col_from_db(int inx, sqlite3_int64& i){
+				if (sqlite3_column_type(_stmt, inx) == SQLITE_NULL)
+					i = 0;
+				i = sqlite3_column_int64(_stmt, inx);
 			}
-
-			int get_int(int i){
-				if (sqlite3_column_type(_stmt, i) == SQLITE_NULL) return 0;
-				return sqlite3_column_int(_stmt, i);
+			void get_col_from_db(int inx, string& s){
+				if (sqlite3_column_type(_stmt, inx) == SQLITE_NULL) s = string();
+				sqlite3_column_bytes(_stmt, inx);
+				s = string((char*)sqlite3_column_text(_stmt, inx));
 			}
-
-			double get_double(int i){
-				if (sqlite3_column_type(_stmt, i) == SQLITE_NULL)
-					return 0;
-				return sqlite3_column_double(_stmt, i);
+			void get_col_from_db(int inx, wstring& w){
+				if (sqlite3_column_type(_stmt, inx) == SQLITE_NULL) w = wstring();
+				sqlite3_column_bytes16(_stmt, inx);
+				w = wstring((wchar_t *)sqlite3_column_text16(_stmt, inx));
 			}
-			sqlite3_int64 get_int64(int i){
-				if (sqlite3_column_type(_stmt, i) == SQLITE_NULL)
-					return 0;
-				return sqlite3_column_int64(_stmt, i);
+			void get_col_from_db(int inx, double& d){
+				if (sqlite3_column_type(_stmt, inx) == SQLITE_NULL)
+					d = 0;
+				d = sqlite3_column_double(_stmt, inx);
 			}
-
-
-			string get_col(int i, type_call<string const &> tc){ return get_string(i); }
-			string get_col(int i, type_call<string &> tc){ return get_string(i); }
-			string get_col(int i, type_call<string &&> tc){ return get_string(i); }
-			string get_col(int i, type_call<string> tc){ return get_string(i); }
-
-			wstring get_col(int i, type_call<wstring const &> tc){ return get_wstring(i); }
-			wstring get_col(int i, type_call<wstring &> tc){ return get_wstring(i); }
-			wstring get_col(int i, type_call<wstring &&> tc){ return get_wstring(i); }
-			wstring get_col(int i, type_call<wstring> tc){ return get_wstring(i); }
-
-			int get_col(int i, type_call<int> tc){ return get_int(i); }
-			double get_col(int i, type_call<double> tc){ return get_double(i); }
-			sqlite3_int64 get_col(int i, type_call<sqlite3_int64> tc){ return get_int64(i); }
+			void get_col_from_db(int inx, float& f){
+				if (sqlite3_column_type(_stmt, inx) == SQLITE_NULL)
+					f = 0;
+				f = float(sqlite3_column_double(_stmt, inx));
+			}
 #pragma endregion
+
 
 #pragma region operator >>
 
 			void operator>>(int & val){
 				_extract_single_value([&]{
-					val = get_col(0, type_call<int>());
+					get_col_from_db(0, val);
 				});
 			}
 			void operator>>(string & val){
 				_extract_single_value([&]{
-					val = get_col(0, type_call<string>());
+					get_col_from_db(0, val);
 				});
 			}
 			void operator>>(wstring & val){
 				_extract_single_value([&]{
-					val = get_col(0, type_call<wstring>());
+					get_col_from_db(0, val);
 				});
 			}
 			void operator>>(double & val){
 				_extract_single_value([&]{
-					val = get_col(0, type_call<double>());
+					get_col_from_db(0, val);
+				});
+			}
+			void operator>>(float & val){
+				_extract_single_value([&]{
+					get_col_from_db(0, val);
 				});
 			}
 			void operator>>(sqlite3_int64 & val){
 				_extract_single_value([&]{
-					val = get_col(0, type_call<sqlite3_int64>());
+					get_col_from_db(0, val);
 				});
 			}
 
+			template<typename FUNC>
+			void operator>>(FUNC l){
+				typedef function_traits<decltype(l)> traits;
 
-			template<typename T>
-			void operator>>(function<void(T)> call_back){
-				_extract([&]{
-					call_back(
-						get_col(0, type_call<T>())
-						);
+				database_binder& dbb = *this;
+				_extract([&](){
+					binder<traits::arity>::run(dbb, l);
 				});
-			}
 
-			template<typename T1, typename T2>
-			void operator>>(function<void(T1, T2)> call_back){
-				_extract([&]{
-					call_back(
-						get_col(0, type_call<T1>()),
-						get_col(1, type_call<T2>())
-						);
-				});
-			}
-
-			template<typename T1, typename T2, typename T3>
-			void operator>>(function<void(T1, T2, T3)> call_back){
-				_extract([&]{
-					call_back(
-						get_col(0, type_call<T1>()),
-						get_col(1, type_call<T2>()),
-						get_col(2, type_call<T3>())
-						);
-				});
-			}
-
-			template<typename T1, typename T2, typename T3, typename T4>
-			void operator>>(function<void(T1, T2, T3, T4)> call_back){
-				_extract([&]{
-					call_back(
-						get_col(0, type_call<T1>()),
-						get_col(1, type_call<T2>()),
-						get_col(2, type_call<T3>()),
-						get_col(3, type_call<T4>())
-						);
-				});
-			}
-
-			template<typename T1, typename T2, typename T3, typename T4, typename T5>
-			void operator>>(function<void(T1, T2, T3, T4, T5)> call_back){
-				_extract([&]{
-					call_back(
-						get_col(0, type_call<T1>()),
-						get_col(1, type_call<T2>()),
-						get_col(2, type_call<T3>()),
-						get_col(3, type_call<T4>()),
-						get_col(4, type_call<T5>())
-						);
-				});
-			}
-
-			template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
-			void operator>>(function<void(T1, T2, T3, T4, T5, T6)> call_back){
-				_extract([&]{
-					call_back(
-						get_col(0, type_call<T1>()),
-						get_col(1, type_call<T2>()),
-						get_col(2, type_call<T3>()),
-						get_col(3, type_call<T4>()),
-						get_col(4, type_call<T5>()),
-						get_col(5, type_call<T6>())
-						);
-				});
-			}
-
-			template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
-			void operator>>(function<void(T1, T2, T3, T4, T5, T6, T7)> call_back){
-				_extract([&]{
-					call_back(
-						get_col(0, type_call<T1>()),
-						get_col(1, type_call<T2>()),
-						get_col(2, type_call<T3>()),
-						get_col(3, type_call<T4>()),
-						get_col(4, type_call<T5>()),
-						get_col(5, type_call<T6>()),
-						get_col(6, type_call<T7>())
-						);
-				});
-			}
-
-			template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
-			void operator>>(function<void(T1, T2, T3, T4, T5, T6, T7, T8)> call_back){
-				_extract([&]{
-					call_back(
-						get_col(0, type_call<T1>()),
-						get_col(1, type_call<T2>()),
-						get_col(2, type_call<T3>()),
-						get_col(3, type_call<T4>()),
-						get_col(4, type_call<T5>()),
-						get_col(5, type_call<T6>()),
-						get_col(6, type_call<T7>()),
-						get_col(7, type_call<T8>())
-						);
-				});
-			}
-
-			template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9>
-			void operator>>(function<void(T1, T2, T3, T4, T5, T6, T7, T8, T9)> call_back){
-				_extract([&]{
-					call_back(
-						get_col(0, type_call<T1>()),
-						get_col(1, type_call<T2>()),
-						get_col(2, type_call<T3>()),
-						get_col(3, type_call<T4>()),
-						get_col(4, type_call<T5>()),
-						get_col(5, type_call<T6>()),
-						get_col(6, type_call<T7>()),
-						get_col(7, type_call<T8>()),
-						get_col(8, type_call<T9>())
-						);
-				});
-			}
-
-			template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9, typename T10>
-			void operator>>(function<void(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)> call_back){
-				_extract([&]{
-					call_back(
-						get_col(0, type_call<T1>()),
-						get_col(1, type_call<T2>()),
-						get_col(2, type_call<T3>()),
-						get_col(3, type_call<T4>()),
-						get_col(4, type_call<T5>()),
-						get_col(5, type_call<T6>()),
-						get_col(6, type_call<T7>()),
-						get_col(7, type_call<T8>()),
-						get_col(8, type_call<T9>()),
-						get_col(9, type_call<T10>())
-						);
-				});
-			}
-
-			template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9, typename T10, typename T11>
-			void operator>>(function<void(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)> call_back){
-				_extract([&]{
-					call_back(
-						get_col(0, type_call<T1>()),
-						get_col(1, type_call<T2>()),
-						get_col(2, type_call<T3>()),
-						get_col(3, type_call<T4>()),
-						get_col(4, type_call<T5>()),
-						get_col(5, type_call<T6>()),
-						get_col(6, type_call<T7>()),
-						get_col(7, type_call<T8>()),
-						get_col(8, type_call<T9>()),
-						get_col(9, type_call<T10>()),
-						get_col(10, type_call<T11>())
-						);
-				});
-			}
-
-			template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9, typename T10, typename T11, typename T12>
-			void operator>>(function<void(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12)> call_back){
-				_extract([&]{
-					call_back(
-						get_col(0, type_call<T1>()),
-						get_col(1, type_call<T2>()),
-						get_col(2, type_call<T3>()),
-						get_col(3, type_call<T4>()),
-						get_col(4, type_call<T5>()),
-						get_col(5, type_call<T6>()),
-						get_col(6, type_call<T7>()),
-						get_col(7, type_call<T8>()),
-						get_col(8, type_call<T9>()),
-						get_col(9, type_call<T10>()),
-						get_col(10, type_call<T11>()),
-						get_col(11, type_call<T12>())
-						);
-				});
-			}
-
-			template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9, typename T10, typename T11, typename T12, typename T13>
-			void operator>>(function<void(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13)> call_back){
-				_extract([&]{
-					call_back(
-						get_col(0, type_call<T1>()),
-						get_col(1, type_call<T2>()),
-						get_col(2, type_call<T3>()),
-						get_col(3, type_call<T4>()),
-						get_col(4, type_call<T5>()),
-						get_col(5, type_call<T6>()),
-						get_col(6, type_call<T7>()),
-						get_col(7, type_call<T8>()),
-						get_col(8, type_call<T9>()),
-						get_col(9, type_call<T10>()),
-						get_col(10, type_call<T11>()),
-						get_col(11, type_call<T12>()),
-						get_col(12, type_call<T13>())
-						);
-				});
-			}
-
-			template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9, typename T10, typename T11, typename T12, typename T13, typename T14>
-			void operator>>(function<void(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14)> call_back){
-				_extract([&]{
-					call_back(
-						get_col(0, type_call<T1>()),
-						get_col(1, type_call<T2>()),
-						get_col(2, type_call<T3>()),
-						get_col(3, type_call<T4>()),
-						get_col(4, type_call<T5>()),
-						get_col(5, type_call<T6>()),
-						get_col(6, type_call<T7>()),
-						get_col(7, type_call<T8>()),
-						get_col(8, type_call<T9>()),
-						get_col(9, type_call<T10>()),
-						get_col(10, type_call<T11>()),
-						get_col(11, type_call<T12>()),
-						get_col(12, type_call<T13>()),
-						get_col(13, type_call<T14>())
-						);
-				});
-			}
-
-			template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9, typename T10, typename T11, typename T12, typename T13, typename T14, typename T15>
-			void operator>>(function<void(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15)> call_back){
-				_extract([&]{
-					call_back(
-						get_col(0, type_call<T1>()),
-						get_col(1, type_call<T2>()),
-						get_col(2, type_call<T3>()),
-						get_col(3, type_call<T4>()),
-						get_col(4, type_call<T5>()),
-						get_col(5, type_call<T6>()),
-						get_col(6, type_call<T7>()),
-						get_col(7, type_call<T8>()),
-						get_col(8, type_call<T9>()),
-						get_col(9, type_call<T10>()),
-						get_col(10, type_call<T11>()),
-						get_col(11, type_call<T12>()),
-						get_col(12, type_call<T13>()),
-						get_col(13, type_call<T14>()),
-						get_col(14, type_call<T15>())
-						);
-				});
 			}
 #pragma endregion
+
 		};
 
 		database(wstring const & db_name) : _db(nullptr), _connected(false) {
@@ -470,17 +236,312 @@ namespace sqlite {
 		operator wstring() {
 			return (wchar_t*)sqlite3_errmsg16(_db);
 		}
-	};
 
-#define _sqlitepp
-#define _sqliteppdouble ,double
-#define _sqliteppfloat ,float
-#define _sqliteppint ,int
-#define _sqlitepplong ,long
-#define _sqliteppconst ,const
-#define _sqliteppstring ,string
-#define _sqliteppwstring ,wstring
-#define _sqliteppexpand(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15) a1 _sqlitepp##a2 _sqlitepp##a3 _sqlitepp##a4 _sqlitepp##a5 _sqlitepp##a6 _sqlitepp##a7 _sqlitepp##a8 _sqlitepp##a9 _sqlitepp##a10 _sqlitepp##a11 _sqlitepp##a12 _sqlitepp##a13 _sqlitepp##a14 _sqlitepp##a15 
-#define magic_mapper(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15) (function<void(_sqliteppexpand(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15))>)[&](_sqliteppexpand(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15))
+
+
+		template <typename T>
+		struct function_traits
+			: public function_traits<decltype(&T::operator())>
+		{};
+
+		template <typename ClassType, typename ReturnType, typename... Args>
+		struct function_traits<ReturnType(ClassType::*)(Args...) const>
+			// we specialize for pointers to member function
+		{
+			enum { arity = sizeof...(Args) };
+			// arity is the number of arguments.
+
+			typedef ReturnType result_type;
+
+			template <size_t i>
+			struct arg
+			{
+				typedef typename std::tuple_element<i, std::tuple<Args...>>::type type;
+				// the i-th argument is equivalent to the i-th tuple element of a tuple
+				// composed of those arguments.
+			};
+		};
+
+
+		template<int N>
+		class binder {
+			template<typename F>
+			static void run(database_binder& dbb, F l);
+		};
+		template<>
+		struct binder<0> {
+			template<typename F>
+			static void run(database_binder& dbb, F l) {
+				typedef function_traits<decltype(l)> traits;
+
+				l();
+			}
+		};
+		template<>
+		struct binder<1> {
+			template<typename F>
+			static void run(database_binder& dbb, F l) {
+				typedef function_traits<decltype(l)> traits;
+				typedef typename traits::arg<0>::type type_1;
+
+				type_1 col_1;
+				dbb.get_col_from_db(0, col_1);
+
+				l(move(col_1));
+			}
+		};
+		template<>
+		struct binder<2> {
+			template<typename F>
+			static void run(database_binder& dbb, F l) {
+				typedef function_traits<decltype(l)> traits;
+				typedef typename traits::arg<0>::type type_1;
+				typedef typename traits::arg<1>::type type_2;
+
+				type_1 col_1;
+				type_2 col_2;
+				dbb.get_col_from_db(0, col_1);
+				dbb.get_col_from_db(1, col_2);
+
+				l(move(col_1), move(col_2));
+			}
+		};
+		template<>
+		struct binder<3> {
+			template<typename F>
+			static void run(database_binder& dbb, F l) {
+				typedef function_traits<decltype(l)> traits;
+				typedef typename traits::arg<0>::type type_1;
+				typedef typename traits::arg<1>::type type_2;
+				typedef typename traits::arg<2>::type type_3;
+
+				type_1 col_1;
+				dbb.get_col_from_db(0, col_1);
+				type_2 col_2;
+				dbb.get_col_from_db(1, col_2);
+				type_3 col_3;
+				dbb.get_col_from_db(2, col_3);
+
+				l(move(col_1), move(col_2), move(col_3));
+			}
+		};
+		template<>
+		struct binder<4> {
+			template<typename F>
+			static void run(database_binder& dbb, F l) {
+				typedef function_traits<decltype(l)> traits;
+				typedef typename traits::arg<0>::type type_1;
+				typedef typename traits::arg<1>::type type_2;
+				typedef typename traits::arg<2>::type type_3;
+				typedef typename traits::arg<3>::type type_4;
+
+				type_1 col_1;
+				dbb.get_col_from_db(0, col_1);
+				type_2 col_2;
+				dbb.get_col_from_db(1, col_2);
+				type_3 col_3;
+				dbb.get_col_from_db(2, col_3);
+				type_4 col_4;
+				dbb.get_col_from_db(3, col_4);
+
+				l(move(col_1), move(col_2), move(col_3), move(col_4));
+			}
+		};
+		template<>
+		struct binder<5> {
+			template<typename F>
+			static void run(database_binder& dbb, F l) {
+				typedef function_traits<decltype(l)> traits;
+				typedef typename traits::arg<0>::type type_1;
+				typedef typename traits::arg<1>::type type_2;
+				typedef typename traits::arg<2>::type type_3;
+				typedef typename traits::arg<3>::type type_4;
+				typedef typename traits::arg<4>::type type_5;
+
+				type_1 col_1;
+				dbb.get_col_from_db(0, col_1);
+				type_2 col_2;
+				dbb.get_col_from_db(1, col_2);
+				type_3 col_3;
+				dbb.get_col_from_db(2, col_3);
+				type_4 col_4;
+				dbb.get_col_from_db(3, col_4);
+				type_5 col_5;
+				dbb.get_col_from_db(4, col_5);
+
+				l(move(col_1), move(col_2), move(col_3), move(col_4), move(col_5));
+			}
+		};
+		template<>
+		struct binder<6> {
+			template<typename F>
+			static void run(database_binder& dbb, F l) {
+				typedef function_traits<decltype(l)> traits;
+				typedef typename traits::arg<0>::type type_1;
+				typedef typename traits::arg<1>::type type_2;
+				typedef typename traits::arg<2>::type type_3;
+				typedef typename traits::arg<3>::type type_4;
+				typedef typename traits::arg<4>::type type_5;
+				typedef typename traits::arg<5>::type type_6;
+
+				type_1 col_1;
+				dbb.get_col_from_db(0, col_1);
+				type_2 col_2;
+				dbb.get_col_from_db(1, col_2);
+				type_3 col_3;
+				dbb.get_col_from_db(2, col_3);
+				type_4 col_4;
+				dbb.get_col_from_db(3, col_4);
+				type_5 col_5;
+				dbb.get_col_from_db(4, col_5);
+				type_6 col_6;
+				dbb.get_col_from_db(5, col_6);
+
+				l(move(col_1), move(col_2), move(col_3), move(col_4), move(col_5), move(col_6));
+			}
+		};
+		template<>
+		struct binder<7> {
+			template<typename F>
+			static void run(database_binder& dbb, F l) {
+				typedef function_traits<decltype(l)> traits;
+				typedef typename traits::arg<0>::type type_1;
+				typedef typename traits::arg<1>::type type_2;
+				typedef typename traits::arg<2>::type type_3;
+				typedef typename traits::arg<3>::type type_4;
+				typedef typename traits::arg<4>::type type_5;
+				typedef typename traits::arg<5>::type type_6;
+				typedef typename traits::arg<6>::type type_7;
+
+				type_1 col_1;
+				dbb.get_col_from_db(0, col_1);
+				type_2 col_2;
+				dbb.get_col_from_db(1, col_2);
+				type_3 col_3;
+				dbb.get_col_from_db(2, col_3);
+				type_4 col_4;
+				dbb.get_col_from_db(3, col_4);
+				type_5 col_5;
+				dbb.get_col_from_db(4, col_5);
+				type_6 col_6;
+				dbb.get_col_from_db(5, col_6);
+				type_7 col_7;
+				dbb.get_col_from_db(6, col_7);
+
+				l(move(col_1), move(col_2), move(col_3), move(col_4), move(col_5), move(col_6), move(col_7));
+			}
+		};
+		template<>
+		struct binder<8> {
+			template<typename F>
+			static void run(database_binder& dbb, F l) {
+				typedef function_traits<decltype(l)> traits;
+				typedef typename traits::arg<0>::type type_1;
+				typedef typename traits::arg<1>::type type_2;
+				typedef typename traits::arg<2>::type type_3;
+				typedef typename traits::arg<3>::type type_4;
+				typedef typename traits::arg<4>::type type_5;
+				typedef typename traits::arg<5>::type type_6;
+				typedef typename traits::arg<6>::type type_7;
+				typedef typename traits::arg<7>::type type_8;
+
+				type_1 col_1;
+				dbb.get_col_from_db(0, col_1);
+				type_2 col_2;
+				dbb.get_col_from_db(1, col_2);
+				type_3 col_3;
+				dbb.get_col_from_db(2, col_3);
+				type_4 col_4;
+				dbb.get_col_from_db(3, col_4);
+				type_5 col_5;
+				dbb.get_col_from_db(4, col_5);
+				type_6 col_6;
+				dbb.get_col_from_db(5, col_6);
+				type_7 col_7;
+				dbb.get_col_from_db(6, col_7);
+				type_8 col_8;
+				dbb.get_col_from_db(7, col_8);
+
+				l(move(col_1), move(col_2), move(col_3), move(col_4), move(col_5), move(col_6), move(col_7), move(col_8));
+			}
+		};
+		template<>
+		struct binder<9> {
+			template<typename F>
+			static void run(database_binder& dbb, F l) {
+				typedef function_traits<decltype(l)> traits;
+				typedef typename traits::arg<0>::type type_1;
+				typedef typename traits::arg<1>::type type_2;
+				typedef typename traits::arg<2>::type type_3;
+				typedef typename traits::arg<3>::type type_4;
+				typedef typename traits::arg<4>::type type_5;
+				typedef typename traits::arg<5>::type type_6;
+				typedef typename traits::arg<6>::type type_7;
+				typedef typename traits::arg<7>::type type_8;
+				typedef typename traits::arg<8>::type type_9;
+
+				type_1 col_1;
+				dbb.get_col_from_db(0, col_1);
+				type_2 col_2;
+				dbb.get_col_from_db(1, col_2);
+				type_3 col_3;
+				dbb.get_col_from_db(2, col_3);
+				type_4 col_4;
+				dbb.get_col_from_db(3, col_4);
+				type_5 col_5;
+				dbb.get_col_from_db(4, col_5);
+				type_6 col_6;
+				dbb.get_col_from_db(5, col_6);
+				type_7 col_7;
+				dbb.get_col_from_db(6, col_7);
+				type_8 col_8;
+				dbb.get_col_from_db(7, col_8);
+				type_9 col_9;
+				dbb.get_col_from_db(8, col_9);
+
+				l(move(col_1), move(col_2), move(col_3), move(col_4), move(col_5), move(col_6), move(col_7), move(col_8), move(col_9));
+			}
+		};
+		template<>
+		struct binder<10> {
+			template<typename F>
+			static void run(database_binder& dbb, F l) {
+				typedef function_traits<decltype(l)> traits;
+				typedef typename traits::arg<0>::type type_1;
+				typedef typename traits::arg<1>::type type_2;
+				typedef typename traits::arg<2>::type type_3;
+				typedef typename traits::arg<3>::type type_4;
+				typedef typename traits::arg<4>::type type_5;
+				typedef typename traits::arg<5>::type type_6;
+				typedef typename traits::arg<6>::type type_7;
+				typedef typename traits::arg<7>::type type_8;
+				typedef typename traits::arg<8>::type type_9;
+				typedef typename traits::arg<9>::type type_10;
+
+				type_1 col_1;
+				dbb.get_col_from_db(0, col_1);
+				type_2 col_2;
+				dbb.get_col_from_db(1, col_2);
+				type_3 col_3;
+				dbb.get_col_from_db(2, col_3);
+				type_4 col_4;
+				dbb.get_col_from_db(3, col_4);
+				type_5 col_5;
+				dbb.get_col_from_db(4, col_5);
+				type_6 col_6;
+				dbb.get_col_from_db(5, col_6);
+				type_7 col_7;
+				dbb.get_col_from_db(6, col_7);
+				type_8 col_8;
+				dbb.get_col_from_db(7, col_8);
+				type_9 col_9;
+				dbb.get_col_from_db(8, col_9);
+				type_9 col_10;
+				dbb.get_col_from_db(9, col_10);
+
+				l(move(col_1), move(col_2), move(col_3), move(col_4), move(col_5), move(col_6), move(col_7), move(col_8), move(col_9), move(col_10));
+			}
+		};
+	};
 
 }
