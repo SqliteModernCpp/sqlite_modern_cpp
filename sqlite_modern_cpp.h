@@ -129,12 +129,12 @@ namespace sqlite {
 #pragma region get_col_from_db			
 			void get_col_from_db(int inx, int& i){
 				if (sqlite3_column_type(_stmt, inx) == SQLITE_NULL) i = 0;
-				i = sqlite3_column_int(_stmt, inx);
+				else i = sqlite3_column_int(_stmt, inx);
 			}
 			void get_col_from_db(int inx, sqlite3_int64& i){
 				if (sqlite3_column_type(_stmt, inx) == SQLITE_NULL)
 					i = 0;
-				i = sqlite3_column_int64(_stmt, inx);
+				else i = sqlite3_column_int64(_stmt, inx);
 			}
 			void get_col_from_db(int inx, string& s){
 				if (sqlite3_column_type(_stmt, inx) == SQLITE_NULL) s = string();
