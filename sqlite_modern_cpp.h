@@ -138,23 +138,29 @@ namespace sqlite {
 			}
 			void get_col_from_db(int inx, string& s){
 				if (sqlite3_column_type(_stmt, inx) == SQLITE_NULL) s = string();
-				sqlite3_column_bytes(_stmt, inx);
-				s = string((char*)sqlite3_column_text(_stmt, inx));
+				else {
+					sqlite3_column_bytes(_stmt, inx);
+					s = string((char*)sqlite3_column_text(_stmt, inx));
+				}
 			}
 			void get_col_from_db(int inx, wstring& w){
 				if (sqlite3_column_type(_stmt, inx) == SQLITE_NULL) w = wstring();
-				sqlite3_column_bytes16(_stmt, inx);
-				w = wstring((wchar_t *)sqlite3_column_text16(_stmt, inx));
+				else {
+					sqlite3_column_bytes16(_stmt, inx);
+					w = wstring((wchar_t *)sqlite3_column_text16(_stmt, inx));
+				}
 			}
 			void get_col_from_db(int inx, double& d){
 				if (sqlite3_column_type(_stmt, inx) == SQLITE_NULL)
 					d = 0;
-				d = sqlite3_column_double(_stmt, inx);
+				else
+					d = sqlite3_column_double(_stmt, inx);
 			}
 			void get_col_from_db(int inx, float& f){
 				if (sqlite3_column_type(_stmt, inx) == SQLITE_NULL)
 					f = 0;
-				f = float(sqlite3_column_double(_stmt, inx));
+				else
+					f = float(sqlite3_column_double(_stmt, inx));
 			}
 #pragma endregion
 
