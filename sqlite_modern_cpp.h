@@ -96,15 +96,13 @@ namespace sqlite {
 	public:
 		friend class database;
 		~database_binder() {
+			/* Will be executed if no >>op is found */
 			if( _stmt ) {
-				/* Wastes A LOT of time
 				int hresult;
-				if( (hresult = sqlite3_step( _stmt )) != SQLITE_DONE ) {
-				if( hresult == SQLITE_ROW )
-				throw std::runtime_error( "not all rows readed" );
-				throw std::runtime_error( sqlite3_errmsg( _db ) );
+				if( sqlite3_step( _stmt ) != SQLITE_DONE ) {
+					throw std::runtime_error( sqlite3_errmsg( _db ) );
 				}
-				*/
+				
 				if( sqlite3_finalize( _stmt ) != SQLITE_OK )
 					throw std::runtime_error( sqlite3_errmsg( _db ) );
 				_stmt = nullptr;
