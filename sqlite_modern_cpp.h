@@ -134,13 +134,13 @@ namespace sqlite {
 			return *this;
 		}
 		database_binder& operator <<(std::string const& txt) {
-			if( sqlite3_bind_text( _stmt, _inx, txt.data(), -1, SQLITE_STATIC ) != SQLITE_OK )
+			if( sqlite3_bind_text( _stmt, _inx, txt.data(), -1, SQLITE_TRANSIENT ) != SQLITE_OK )
 				throw std::runtime_error( sqlite3_errmsg( _db ) );
 			++_inx;
 			return *this;
 		}
 		database_binder& operator <<(std::wstring const& txt) {
-			if( sqlite3_bind_text16( _stmt, _inx, txt.data(), -1, SQLITE_STATIC ) != SQLITE_OK )
+			if( sqlite3_bind_text16( _stmt, _inx, txt.data(), -1, SQLITE_TRANSIENT ) != SQLITE_OK )
 				throw std::runtime_error( sqlite3_errmsg( _db ) );
 			++_inx;
 			return *this;
