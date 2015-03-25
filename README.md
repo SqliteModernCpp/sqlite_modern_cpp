@@ -64,7 +64,33 @@ using namespace std;
 
 ```
 
-*node: for NDK use the full path to you database file : `sqlite::database db("/data/data/com.your.package/dbfile.db")`*.
+Transactions
+=====
+You can use transactions with `begin;`, `commit;` and `rollback;` commands.
+*(don't forget to put all the semicolons at the end of each query)*.
+
+```c++
+		db << "begin;"; // begin a transaction ...   
+		db << "insert into user (age,name,weight) values (?,?,?);"
+			<< 20
+			<< u"bob"
+			<< 83.25f;
+		db << "insert into user (age,name,weight) values (?,?,?);" // utf16 string
+			<< 21
+			<< u"jack"
+			<< 68.5;
+		db << "commit;"; // commit all the changes.
+                
+		db << "begin;"; // begin another transaction ....
+		db << "insert into user (age,name,weight) values (?,?,?);" // utf16 string
+			<< 19
+			<< u"chirs"
+			<< 82.7;
+		db << "rollback;"; // cancel this transaction ...
+
+```
+
+*node: for NDK use the full path to your database file : `sqlite::database db("/data/data/com.your.package/dbfile.db")`*.
 
 ##License
 
