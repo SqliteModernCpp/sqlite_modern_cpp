@@ -92,7 +92,11 @@ namespace sqlite {
 		~database_binder() {
 			/* Will be executed if no >>op is found */
 			if (_stmt) {
-				if (sqlite3_step(_stmt) != SQLITE_DONE) {
+				int hresult;
+				while ((hresult = sqlite3_step(_stmt)) == SQLITE_ROW)
+					;
+
+				if (hresult != SQLITE_DONE) {
 					throw std::runtime_error(sqlite3_errmsg(_db));
 				}
 
