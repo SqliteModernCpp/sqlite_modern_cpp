@@ -1,8 +1,10 @@
 #pragma once
-#include<string>
-#include<functional>
-#include<stdexcept>
-#include"sqlite3.h"
+
+#include <string>
+#include <functional>
+#include <stdexcept>
+
+#include "sqlite3.h"
 
 namespace sqlite {
 
@@ -32,7 +34,7 @@ namespace sqlite {
 	class database;
 	class database_binder;
 
-	template<int> class binder;
+	template<std::size_t> class binder;
 
 	class database_binder {
 	private:
@@ -305,280 +307,36 @@ namespace sqlite {
 
 #pragma region binder specialization
 
-	template<>
-	struct binder < 0 > {
-		template<typename F>
-		static void run(database_binder& dbb, F l) {
-			typedef function_traits<decltype(l)> traits;
+	template<std::size_t Count>
+	struct binder {
+		template<
+			typename    Function,
+			typename... Values
+		>
+		static typename std::enable_if<(sizeof...(Values) < Count), void>::type run(
+			database_binder& db,
+			Function&        function,
+			Values&&...      values
+		) {
+			typename function_traits<Function>::template arg<sizeof...(Values)>::type value{};
+			db.get_col_from_db(sizeof...(Values), value);
 
-			l();
+			run<Function>(db, function, values..., value);
+		}
+
+		template<
+			typename    Function,
+			typename... Values
+		>
+		static typename std::enable_if<(sizeof...(Values) == Count), void>::type run(
+			database_binder&,
+			Function&        function,
+			Values&&...      values
+		) {
+			function(std::move(values)...);
 		}
 	};
-	template<>
-	struct binder < 1 > {
-		template<typename F>
-		static void run(database_binder& dbb, F l) {
-			typedef function_traits<decltype(l)> traits;
-			typedef typename traits::template arg<0>::type type_1;
 
-			type_1 col_1;
-			dbb.get_col_from_db(0, col_1);
-
-			l(std::move(col_1));
-		}
-	};
-	template<>
-	struct binder < 2 > {
-		template<typename F>
-		static void run(database_binder& dbb, F l) {
-			typedef function_traits<decltype(l)> traits;
-			typedef typename traits::template arg<0>::type type_1;
-			typedef typename traits::template arg<1>::type type_2;
-
-			type_1 col_1;
-			type_2 col_2;
-			dbb.get_col_from_db(0, col_1);
-			dbb.get_col_from_db(1, col_2);
-
-			l(std::move(col_1), std::move(col_2));
-		}
-	};
-	template<>
-	struct binder < 3 > {
-		template<typename F>
-		static void run(database_binder& dbb, F l) {
-			typedef function_traits<decltype(l)> traits;
-			typedef typename traits::template arg<0>::type type_1;
-			typedef typename traits::template arg<1>::type type_2;
-			typedef typename traits::template arg<2>::type type_3;
-
-			type_1 col_1;
-			dbb.get_col_from_db(0, col_1);
-			type_2 col_2;
-			dbb.get_col_from_db(1, col_2);
-			type_3 col_3;
-			dbb.get_col_from_db(2, col_3);
-
-			l(std::move(col_1), std::move(col_2), std::move(col_3));
-		}
-	};
-	template<>
-	struct binder < 4 > {
-		template<typename F>
-		static void run(database_binder& dbb, F l) {
-			typedef function_traits<decltype(l)> traits;
-			typedef typename traits:: template arg<0>::type type_1;
-			typedef typename traits::template arg<1>::type type_2;
-			typedef typename traits::template arg<2>::type type_3;
-			typedef typename traits::template arg<3>::type type_4;
-
-			type_1 col_1;
-			dbb.get_col_from_db(0, col_1);
-			type_2 col_2;
-			dbb.get_col_from_db(1, col_2);
-			type_3 col_3;
-			dbb.get_col_from_db(2, col_3);
-			type_4 col_4;
-			dbb.get_col_from_db(3, col_4);
-
-			l(std::move(col_1), std::move(col_2), std::move(col_3), std::move(col_4));
-		}
-	};
-	template<>
-	struct binder < 5 > {
-		template<typename F>
-		static void run(database_binder& dbb, F l) {
-			typedef function_traits<decltype(l)> traits;
-			typedef typename traits:: template arg<0>::type type_1;
-			typedef typename traits::template arg<1>::type type_2;
-			typedef typename traits::template arg<2>::type type_3;
-			typedef typename traits::template arg<3>::type type_4;
-			typedef typename traits::template arg<4>::type type_5;
-
-			type_1 col_1;
-			dbb.get_col_from_db(0, col_1);
-			type_2 col_2;
-			dbb.get_col_from_db(1, col_2);
-			type_3 col_3;
-			dbb.get_col_from_db(2, col_3);
-			type_4 col_4;
-			dbb.get_col_from_db(3, col_4);
-			type_5 col_5;
-			dbb.get_col_from_db(4, col_5);
-
-			l(std::move(col_1), std::move(col_2), std::move(col_3), std::move(col_4), std::move(col_5));
-		}
-	};
-	template<>
-	struct binder < 6 > {
-		template<typename F>
-		static void run(database_binder& dbb, F l) {
-			typedef function_traits<decltype(l)> traits;
-			typedef typename traits:: template arg<0>::type type_1;
-			typedef typename traits::template arg<1>::type type_2;
-			typedef typename traits::template arg<2>::type type_3;
-			typedef typename traits::template arg<3>::type type_4;
-			typedef typename traits::template arg<4>::type type_5;
-			typedef typename traits::template arg<5>::type type_6;
-
-			type_1 col_1;
-			dbb.get_col_from_db(0, col_1);
-			type_2 col_2;
-			dbb.get_col_from_db(1, col_2);
-			type_3 col_3;
-			dbb.get_col_from_db(2, col_3);
-			type_4 col_4;
-			dbb.get_col_from_db(3, col_4);
-			type_5 col_5;
-			dbb.get_col_from_db(4, col_5);
-			type_6 col_6;
-			dbb.get_col_from_db(5, col_6);
-
-			l(std::move(col_1), std::move(col_2), std::move(col_3), std::move(col_4), std::move(col_5), std::move(col_6));
-		}
-	};
-	template<>
-	struct binder < 7 > {
-		template<typename F>
-		static void run(database_binder& dbb, F l) {
-			typedef function_traits<decltype(l)> traits;
-			typedef typename traits:: template arg<0>::type type_1;
-			typedef typename traits::template arg<1>::type type_2;
-			typedef typename traits::template arg<2>::type type_3;
-			typedef typename traits::template arg<3>::type type_4;
-			typedef typename traits::template arg<4>::type type_5;
-			typedef typename traits::template arg<5>::type type_6;
-			typedef typename traits::template arg<6>::type type_7;
-
-			type_1 col_1;
-			dbb.get_col_from_db(0, col_1);
-			type_2 col_2;
-			dbb.get_col_from_db(1, col_2);
-			type_3 col_3;
-			dbb.get_col_from_db(2, col_3);
-			type_4 col_4;
-			dbb.get_col_from_db(3, col_4);
-			type_5 col_5;
-			dbb.get_col_from_db(4, col_5);
-			type_6 col_6;
-			dbb.get_col_from_db(5, col_6);
-			type_7 col_7;
-			dbb.get_col_from_db(6, col_7);
-
-			l(std::move(col_1), std::move(col_2), std::move(col_3), std::move(col_4), std::move(col_5), std::move(col_6), std::move(col_7));
-		}
-	};
-	template<>
-	struct binder < 8 > {
-		template<typename F>
-		static void run(database_binder& dbb, F l) {
-			typedef function_traits<decltype(l)> traits;
-			typedef typename traits:: template arg<0>::type type_1;
-			typedef typename traits::template arg<1>::type type_2;
-			typedef typename traits::template arg<2>::type type_3;
-			typedef typename traits::template arg<3>::type type_4;
-			typedef typename traits::template arg<4>::type type_5;
-			typedef typename traits::template arg<5>::type type_6;
-			typedef typename traits::template arg<6>::type type_7;
-			typedef typename traits::template arg<7>::type type_8;
-
-			type_1 col_1;
-			dbb.get_col_from_db(0, col_1);
-			type_2 col_2;
-			dbb.get_col_from_db(1, col_2);
-			type_3 col_3;
-			dbb.get_col_from_db(2, col_3);
-			type_4 col_4;
-			dbb.get_col_from_db(3, col_4);
-			type_5 col_5;
-			dbb.get_col_from_db(4, col_5);
-			type_6 col_6;
-			dbb.get_col_from_db(5, col_6);
-			type_7 col_7;
-			dbb.get_col_from_db(6, col_7);
-			type_8 col_8;
-			dbb.get_col_from_db(7, col_8);
-
-			l(std::move(col_1), std::move(col_2), std::move(col_3), std::move(col_4), std::move(col_5), std::move(col_6), std::move(col_7), std::move(col_8));
-		}
-	};
-	template<>
-	struct binder < 9 > {
-		template<typename F>
-		static void run(database_binder& dbb, F l) {
-			typedef function_traits<decltype(l)> traits;
-			typedef typename traits:: template arg<0>::type type_1;
-			typedef typename traits::template arg<1>::type type_2;
-			typedef typename traits::template arg<2>::type type_3;
-			typedef typename traits::template arg<3>::type type_4;
-			typedef typename traits::template arg<4>::type type_5;
-			typedef typename traits::template arg<5>::type type_6;
-			typedef typename traits::template arg<6>::type type_7;
-			typedef typename traits::template arg<7>::type type_8;
-			typedef typename traits::template arg<8>::type type_9;
-
-			type_1 col_1;
-			dbb.get_col_from_db(0, col_1);
-			type_2 col_2;
-			dbb.get_col_from_db(1, col_2);
-			type_3 col_3;
-			dbb.get_col_from_db(2, col_3);
-			type_4 col_4;
-			dbb.get_col_from_db(3, col_4);
-			type_5 col_5;
-			dbb.get_col_from_db(4, col_5);
-			type_6 col_6;
-			dbb.get_col_from_db(5, col_6);
-			type_7 col_7;
-			dbb.get_col_from_db(6, col_7);
-			type_8 col_8;
-			dbb.get_col_from_db(7, col_8);
-			type_9 col_9;
-			dbb.get_col_from_db(8, col_9);
-
-			l(std::move(col_1), std::move(col_2), std::move(col_3), std::move(col_4), std::move(col_5), std::move(col_6), std::move(col_7), std::move(col_8), std::move(col_9));
-		}
-	};
-	template<>
-	struct binder < 10 > {
-		template<typename F>
-		static void run(database_binder& dbb, F l) {
-			typedef function_traits<decltype(l)> traits;
-			typedef typename traits:: template arg<0>::type type_1;
-			typedef typename traits::template arg<1>::type type_2;
-			typedef typename traits::template arg<2>::type type_3;
-			typedef typename traits::template arg<3>::type type_4;
-			typedef typename traits::template arg<4>::type type_5;
-			typedef typename traits::template arg<5>::type type_6;
-			typedef typename traits::template arg<6>::type type_7;
-			typedef typename traits::template arg<7>::type type_8;
-			typedef typename traits::template arg<8>::type type_9;
-			typedef typename traits::template arg<9>::type type_10;
-
-			type_1 col_1;
-			dbb.get_col_from_db(0, col_1);
-			type_2 col_2;
-			dbb.get_col_from_db(1, col_2);
-			type_3 col_3;
-			dbb.get_col_from_db(2, col_3);
-			type_4 col_4;
-			dbb.get_col_from_db(3, col_4);
-			type_5 col_5;
-			dbb.get_col_from_db(4, col_5);
-			type_6 col_6;
-			dbb.get_col_from_db(5, col_6);
-			type_7 col_7;
-			dbb.get_col_from_db(6, col_7);
-			type_8 col_8;
-			dbb.get_col_from_db(7, col_8);
-			type_9 col_9;
-			dbb.get_col_from_db(8, col_9);
-			type_9 col_10;
-			dbb.get_col_from_db(9, col_10);
-
-			l(std::move(col_1), std::move(col_2), std::move(col_3), std::move(col_4), std::move(col_5), std::move(col_6), std::move(col_7), std::move(col_8), std::move(col_9), std::move(col_10));
-		}
-	};
 #pragma endregion
 
 }
