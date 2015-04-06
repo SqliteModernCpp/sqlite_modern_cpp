@@ -6,66 +6,8 @@
 
 #include "sqlite3.h"
 
-<<<<<<< HEAD:sqlite_modern_cpp.h
-namespace sqlite {
-
-#pragma region function_traits
-	template <typename T>
-	struct function_traits : public function_traits < decltype(&T::operator()) > {};
-
-	template <typename ClassType, typename ReturnType, typename... Args>
-	struct function_traits < ReturnType(ClassType::*)(Args...) const >
-		// we specialize for pointers to member function
-	{
-		enum { arity = sizeof...(Args) };
-		// arity is the number of arguments.
-
-		typedef ReturnType result_type;
-
-		template <size_t i>
-		struct arg {
-			typedef typename std::tuple_element<i, std::tuple<Args...>>::type type;
-			// the i-th argument is equivalent to the i-th tuple element of a tuple
-			// composed of those arguments.
-		};
-	};
-
-#pragma endregion
-
-	class database;
-	class database_binder;
-
-	template<std::size_t> class binder;
-
-	class database_binder {
-	private:
-		sqlite3 * _db;
-		std::u16string _sql;
-		sqlite3_stmt* _stmt;
-		int _inx;
-
-		void _extract(std::function<void(void)> call_back) {
-			int hresult;
-
-			while ((hresult = sqlite3_step(_stmt)) == SQLITE_ROW) {
-				call_back();
-			}
-
-			if (hresult != SQLITE_DONE) {
-				throw std::runtime_error(sqlite3_errmsg(_db));
-			}
-
-			if (sqlite3_finalize(_stmt) != SQLITE_OK) {
-				throw std::runtime_error(sqlite3_errmsg(_db));
-			}
-
-			_stmt = nullptr;
-		}
-		void _extract_single_value(std::function<void(void)> call_back) {
-			int hresult;
-=======
+#include "utility/sfinae.h"
 #include "utility/function_traits.h"
->>>>>>> c584e65... Extracted `function_traits` helper into utility namespace:src/sqlite_modern_cpp.h
 
 namespace sqlite {
 
@@ -74,7 +16,7 @@ template<std::size_t> class binder;
 
 class database_binder {
 private:
-	sqlite3 * _db;
+	sqlite3* const _db;
 	std::u16string _sql;
 	sqlite3_stmt* _stmt;
 	int _inx;
@@ -122,8 +64,19 @@ private:
 			throw std::runtime_error(sqlite3_errmsg(_db));
 		}
 	}
+
+	template <typename Type>
+	using is_sqlite_value = std::integral_constant<
+		bool,
+		   std::is_floating_point<Type>::value
+		|| std::is_integral<Type>::value
+		|| std::is_same<std::string, Type>::value
+		|| std::is_same<std::u16string, Type>::value
+		|| std::is_same<sqlite_int64, Type>::value
+	>;
+
 protected:
-	database_binder(sqlite3 * db, std::u16string const & sql) :
+	database_binder(sqlite3* db, std::u16string const & sql):
 		_db(db),
 		_sql(sql),
 		_stmt(nullptr),
@@ -131,10 +84,12 @@ protected:
 		_prepare();
 	}
 
-	database_binder(sqlite3 * db, std::string const & sql) : database_binder(db, std::u16string(sql.begin(), sql.end())) { }
+	database_binder(sqlite3* db, std::string const & sql):
+		database_binder(db, std::u16string(sql.begin(), sql.end())) { }
 
 public:
 	friend class database;
+
 	~database_binder() {
 		/* Will be executed if no >>op is found */
 		if (_stmt) {
@@ -247,46 +202,26 @@ public:
 		}
 	}
 
-	void operator>>(int & val) {
-		_extract_single_value([&] {
-			get_col_from_db(0, val);
-		});
-	}
-	void operator>>(std::string& val) {
-		_extract_single_value([&] {
-			get_col_from_db(0, val);
-		});
-	}
-	void operator>>(std::u16string& val) {
-		_extract_single_value([&] {
-			get_col_from_db(0, val);
-		});
-	}
-	void operator>>(double & val) {
-		_extract_single_value([&] {
-			get_col_from_db(0, val);
-		});
-	}
-	void operator>>(float & val) {
-		_extract_single_value([&] {
-			get_col_from_db(0, val);
-		});
-	}
-	void operator>>(sqlite3_int64 & val) {
-		_extract_single_value([&] {
-			get_col_from_db(0, val);
+	template <
+		typename Result,
+		utility::enable_if<is_sqlite_value<Result>::value> = 0
+	>
+	void operator>>(Result& value) {
+		this->_extract_single_value([&value, this]{
+			this->get_col_from_db(0, value);
 		});
 	}
 
-	template<typename FUNC>
-	void operator>>(FUNC l) {
-		typedef utility::function_traits<decltype(l)> traits;
+	template <
+		typename Function,
+		utility::disable_if<is_sqlite_value<Function>::value> = 0
+	>
+	void operator>>(Function func) {
+		typedef utility::function_traits<Function> traits;
 
-		database_binder& dbb = *this;
-		_extract([&]() {
-			binder<traits::arity>::run(dbb, l);
+		this->_extract([&func, this]() {
+			binder<traits::arity>::run(*this, func);
 		});
-
 	}
 };
 
@@ -295,6 +230,7 @@ private:
 	sqlite3 * _db;
 	bool _connected;
 	bool _ownes_db;
+
 public:
 	database(std::u16string const & db_name):
 		_db(nullptr),
@@ -344,9 +280,10 @@ private:
 public:
 	template<
 		typename    Function,
-		typename... Values
+		typename... Values,
+		utility::enable_if<(sizeof...(Values) < Count)> = 0
 	>
-	static typename std::enable_if<(sizeof...(Values) < Count), void>::type run(
+	static void run(
 		database_binder& db,
 		Function&        function,
 		Values&&...      values
@@ -359,9 +296,10 @@ public:
 
 	template<
 		typename    Function,
-		typename... Values
+		typename... Values,
+		utility::enable_if<(sizeof...(Values) == Count)> = 0
 	>
-	static typename std::enable_if<(sizeof...(Values) == Count), void>::type run(
+	static void run(
 		database_binder&,
 		Function&        function,
 		Values&&...      values
