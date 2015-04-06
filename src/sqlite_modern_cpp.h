@@ -291,7 +291,7 @@ public:
 		nth_argument_type<Function, sizeof...(Values)> value{};
 		db.get_col_from_db(sizeof...(Values), value);
 
-		run<Function>(db, function, values..., value);
+		run<Function>(db, function, std::forward<Values>(values)..., std::move(value));
 	}
 
 	template<
