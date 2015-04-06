@@ -538,7 +538,7 @@ namespace sqlite {
 			dbb.get_col_from_db(7, col_8);
 			type_9 col_9;
 			dbb.get_col_from_db(8, col_9);
-			type_9 col_10;
+			type_10 col_10;
 			dbb.get_col_from_db(9, col_10);
 
 			l(std::move(col_1), std::move(col_2), std::move(col_3), std::move(col_4), std::move(col_5), std::move(col_6), std::move(col_7), std::move(col_8), std::move(col_9), std::move(col_10));
