@@ -56,7 +56,7 @@ using namespace std;
 		// this also works and the returned value will be automatically converted to string
 		string str_count;
 		db << "select count(*) from user" >> str_count;
-		cout << "scount : " << scount << endl;
+		cout << "scount : " << str_count << endl;
 	}
 	catch (exception& e) {
 		cout << e.what() << endl;
