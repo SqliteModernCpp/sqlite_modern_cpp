@@ -6,7 +6,6 @@
 
 #include "sqlite3.h"
 
-#include "utility/sfinae.h"
 #include "utility/function_traits.h"
 
 namespace sqlite {
@@ -202,21 +201,17 @@ public:
 		}
 	}
 
-	template <
-		typename Result,
-		utility::enable_if<is_sqlite_value<Result>::value> = 0
-	>
-	void operator>>(Result& value) {
+	template <typename Result>
+	typename std::enable_if<is_sqlite_value<Result>::value, void>::type operator>>(
+		Result& value) {
 		this->_extract_single_value([&value, this]{
 			this->get_col_from_db(0, value);
 		});
 	}
 
-	template <
-		typename Function,
-		utility::disable_if<is_sqlite_value<Function>::value> = 0
-	>
-	void operator>>(Function func) {
+	template <typename Function>
+	typename std::enable_if<!is_sqlite_value<Function>::value, void>::type operator>>(
+		Function func) {
 		typedef utility::function_traits<Function> traits;
 
 		this->_extract([&func, this]() {
@@ -278,12 +273,18 @@ private:
 	>::template argument<Index>;
 
 public:
+	// `Boundary` needs to be defaulted to `Count` so that the `run` function
+	// template is not implicitly instantiated on class template instantiation.
+	// Look up section 14.7.1 _Implicit instantiation_ of the ISO C++14 Standard
+	// and the [dicussion](https://github.com/aminroosta/sqlite_modern_cpp/issues/8)
+	// on Github.
+
 	template<
 		typename    Function,
 		typename... Values,
-		utility::enable_if<(sizeof...(Values) < Count)> = 0
+		std::size_t Boundary = Count
 	>
-	static void run(
+	static typename std::enable_if<(sizeof...(Values) < Boundary), void>::type run(
 		database_binder& db,
 		Function&        function,
 		Values&&...      values
@@ -297,9 +298,9 @@ public:
 	template<
 		typename    Function,
 		typename... Values,
-		utility::enable_if<(sizeof...(Values) == Count)> = 0
+		std::size_t Boundary = Count
 	>
-	static void run(
+	static typename std::enable_if<(sizeof...(Values) == Boundary), void>::type run(
 		database_binder&,
 		Function&        function,
 		Values&&...      values
