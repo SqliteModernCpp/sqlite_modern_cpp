@@ -195,12 +195,6 @@ public:
         ++_inx;
         return *this;
     }
-//     database_binder& operator <<(std::time_t val) {
-//         std::ostringstream fmt;
-//         fmt << "datetime(" << val << ", 'unixepoch')";
-//
-//         return operator << (fmt.str());
-//     }
 
 #ifdef SQLITE_MODERN_CPP_WITH_BOOST
     template <typename BoostOptionalT>
