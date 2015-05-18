@@ -95,12 +95,12 @@ You can use transactions with `begin;`, `commit;` and `rollback;` commands.
 
 Dealing with NULL values
 =====
-If you have databases where some rows may be null, you can use boost::optional to retain the NULL value between C++ variables and the database. Note that you must enable the boost support by defining SQLITE_MODERN_CPP_WITH_BOOST.
+If you have databases where some rows may be null, you can use boost::optional to retain the NULL value between C++ variables and the database. Note that you must enable the boost support by including the type extension for it.
 
 ```c++
 
-	#define SQLITE_MODERN_CPP_WITH_BOOST
 	#include "sqlite_modern_cpp.h"
+	#include "extensions/boost_optinonal.h"
 	
 	struct User {
 		long long _id;
@@ -148,8 +148,6 @@ If you have databases where some rows may be null, you can use boost::optional t
 		};
 	}
 ```
-
-When boost is enabled (SQLITE_MODERN_CPP_WITH_BOOST), you can also use the data-type boost::uuids::uuid directly. It will be stored in the database as a 16 byte blob.
 
 
 *node: for NDK use the full path to your database file : `sqlite::database db("/data/data/com.your.package/dbfile.db")`*.
