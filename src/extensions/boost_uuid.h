@@ -17,7 +17,7 @@ namespace sqlite {
 		} else {
 			const auto bytes = uuid.size();
 			if(sqlite3_column_bytes(db._stmt, inx) != bytes) {
-				db.throw_sqlite_error();
+				db.throw_custom_error("UUID size does not match!");
 			}
 			memcpy(uuid.begin(), sqlite3_column_blob(db._stmt, inx), bytes);
 		}
