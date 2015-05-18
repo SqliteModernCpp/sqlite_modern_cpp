@@ -4,7 +4,6 @@
 #include <functional>
 #include <stdexcept>
 #include <ctime>
-#include <sstream>
 
 #ifdef SQLITE_MODERN_CPP_WITH_BOOST
 #   include <boost/optional.hpp>
@@ -187,38 +186,38 @@ public:
 		return *this;
 	}
 	database_binder& operator <<(std::time_t val) {
-        //sqlite_int64 tmpval = static_cast<sqlite_int64>(val);
-        if (sqlite3_bind_int64(_stmt, _inx, val) != SQLITE_OK) {
-            throw_sqlite_error();
-        }
+		//sqlite_int64 tmpval = static_cast<sqlite_int64>(val);
+		if (sqlite3_bind_int64(_stmt, _inx, val) != SQLITE_OK) {
+			throw_sqlite_error();
+		}
 
-        ++_inx;
-        return *this;
-    }
+		++_inx;
+		return *this;
+	}
 
 #ifdef SQLITE_MODERN_CPP_WITH_BOOST
-    template <typename BoostOptionalT>
-    database_binder& operator <<(const boost::optional<BoostOptionalT>& val) {
-        if (val) {
-            return operator << (*val);
-        }
+	template <typename BoostOptionalT>
+	database_binder& operator <<(const boost::optional<BoostOptionalT>& val) {
+		if (val) {
+			return operator << (*val);
+		}
 
-        if (sqlite3_bind_null(_stmt, _inx) != SQLITE_OK) {
-            throw_sqlite_error();
-        }
+		if (sqlite3_bind_null(_stmt, _inx) != SQLITE_OK) {
+			throw_sqlite_error();
+		}
 
-        ++_inx;
-        return *this;
-    }
-    database_binder& operator <<(const boost::uuids::uuid& uuid) {
+		++_inx;
+		return *this;
+	}
+	database_binder& operator <<(const boost::uuids::uuid& uuid) {
 
-        if (sqlite3_bind_blob(_stmt, _inx, uuid.begin(), uuid.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
-            throw_sqlite_error();
-        }
+		if (sqlite3_bind_blob(_stmt, _inx, uuid.begin(), uuid.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
+			throw_sqlite_error();
+		}
 
-        ++_inx;
-        return *this;
-    }
+		++_inx;
+		return *this;
+	}
 #endif // SQLITE_MODERN_CPP_WITH_BOOST
 
 	void get_col_from_db(int inx, int& i) {
@@ -275,25 +274,25 @@ public:
 #ifdef SQLITE_MODERN_CPP_WITH_BOOST
 	template <typename BoostOptionalT>
 	void get_col_from_db(int inx, boost::optional<BoostOptionalT>& o) {
-        if (sqlite3_column_type(_stmt, inx) == SQLITE_NULL) {
-            o.reset();
-        } else {
-            BoostOptionalT v;
-            get_col_from_db(inx, v);
-            o = std::move(v);
-        }
-    }
-    void get_col_from_db(int inx, boost::uuids::uuid& uuid) {
-        if (sqlite3_column_type(_stmt, inx) == SQLITE_NULL) {
-            uuid = boost::uuids::uuid();
-        } else {
-            const auto bytes = uuid.size();
-            if (sqlite3_column_bytes(_stmt, inx) != bytes) {
-                throw_sqlite_error();
-            }
-            memcpy(uuid.begin(), sqlite3_column_blob(_stmt, inx), bytes);
-        }
-    }
+		if (sqlite3_column_type(_stmt, inx) == SQLITE_NULL) {
+			o.reset();
+		} else {
+			BoostOptionalT v;
+			get_col_from_db(inx, v);
+			o = std::move(v);
+		}
+	}
+	void get_col_from_db(int inx, boost::uuids::uuid& uuid) {
+		if (sqlite3_column_type(_stmt, inx) == SQLITE_NULL) {
+			uuid = boost::uuids::uuid();
+		} else {
+			const auto bytes = uuid.size();
+			if (sqlite3_column_bytes(_stmt, inx) != bytes) {
+				throw_sqlite_error();
+			}
+			memcpy(uuid.begin(), sqlite3_column_blob(_stmt, inx), bytes);
+		}
+	}
 #endif
 
 	template <typename Result>
@@ -355,9 +354,9 @@ public:
 		return _connected;
 	}
 
-	sqlite3_int64 LastInsertId() const noexcept {
-        return sqlite3_last_insert_rowid(_db);
-    }
+	sqlite3_int64 last_insert_rowid() const noexcept {
+		return sqlite3_last_insert_rowid(_db);
+	}
 };
 
 template<std::size_t Count>
