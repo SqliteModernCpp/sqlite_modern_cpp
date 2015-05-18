@@ -100,7 +100,7 @@ If you have databases where some rows may be null, you can use boost::optional t
 ```c++
 
 	#include "sqlite_modern_cpp.h"
-	#include "extensions/boost_optinonal.h"
+	#include "extensions/boost_optional.h"
 	
 	struct User {
 		long long _id;
