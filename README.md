@@ -17,6 +17,7 @@ using namespace std;
 		// executes the query and creates a 'user' table
 		db <<
 			"create table if not exists user ("
+			"	_id integer primary key autoincrement not null,"
 			"	age int,"
 			"	name text,"
 			"	weight real"
@@ -38,6 +39,8 @@ using namespace std;
 			<< 21
 			<< "jack"
 			<< 68.5;
+			
+		cout << "The new record got assigned id " << db.last_insert_rowid() << endl;
 
 		// slects from user table on a condition ( age > 18 ) and executes
 		// the lambda for each row returned .
@@ -89,6 +92,65 @@ You can use transactions with `begin;`, `commit;` and `rollback;` commands.
 		db << "rollback;"; // cancel this transaction ...
 
 ```
+
+Dealing with NULL values
+=====
+If you have databases where some rows may be null, you can use boost::optional to retain the NULL value between C++ variables and the database. Note that you must enable the boost support by defining SQLITE_MODERN_CPP_WITH_BOOST.
+
+```c++
+
+	#define SQLITE_MODERN_CPP_WITH_BOOST
+	#include "sqlite_modern_cpp.h"
+	
+	struct User {
+		long long _id;
+		boost::optional<int> age;
+		boost::optional<string> name;
+		boost::optional<real> weight;
+	};
+	
+	{
+		User user;
+		user.name = "bob;
+		
+		// Same database as above
+		database db("dbfile.db");
+		
+		// Here, age and weight will be inserted as NULL in the database.
+		db << "insert into user (age,name,weight) values (?,?,?);"
+			<< user.age
+			<< user.name
+			<< user.weight;
+			
+		user._id = db.last_insert_rowid();
+	}
+	
+	{
+		// Here, the User instance will retain the NULL value(s) from the database.
+		db << "select age,name,weight from user where age > ? ;"
+			<< 18
+			>> [&](long long id,
+				boost::optional<int> age, 
+				boost::optional<string> name
+				boost::optional<real> weight) {
+			
+			User user;
+			user._id = id;
+			user.age = age;
+			user.name = move(name);
+			user.weight = weight;
+			
+			cout << "id=" << user._id
+				<< " age = " << (user.age ? to_string(*user.age) ? string("NULL"))
+				<< " name = " << (user.name ? *user.name : string("NULL"))
+				<< " weight = " << (user.weight ? to_string(*user.weight) : string(NULL))
+				<< endl;
+		};
+	}
+```
+
+When boost is enabled (SQLITE_MODERN_CPP_WITH_BOOST), you can also use the data-type boost::uuids::uuid directly. It will be stored in the database as a 16 byte blob.
+
 
 *node: for NDK use the full path to your database file : `sqlite::database db("/data/data/com.your.package/dbfile.db")`*.
 
