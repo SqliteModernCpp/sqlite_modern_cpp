@@ -111,7 +111,7 @@ If you have databases where some rows may be null, you can use boost::optional t
 	
 	{
 		User user;
-		user.name = "bob;
+		user.name = "bob";
 		
 		// Same database as above
 		database db("dbfile.db");
