@@ -127,7 +127,7 @@ If you have databases where some rows may be null, you can use boost::optional t
 	
 	{
 		// Here, the User instance will retain the NULL value(s) from the database.
-		db << "select age,name,weight from user where age > ? ;"
+		db << "select _id,age,name,weight from user where age > ? ;"
 			<< 18
 			>> [&](long long id,
 				boost::optional<int> age, 
