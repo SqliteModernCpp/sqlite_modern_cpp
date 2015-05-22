@@ -146,7 +146,7 @@ public:
 	typename std::enable_if<is_sqlite_value<Result>::value, void>::type operator>>(
 		Result& value) {
 		this->_extract_single_value([&value, this]{
-			this->get_col_from_db(0, value);
+			get_col_from_db(*this,0, value);
 		});
 	}
 
