@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <ctime>
 
-#include "sqlite3.h"
+#include "../sqlite3.h"
 
 #include "utility/function_traits.h"
 
@@ -21,8 +21,7 @@ class database_binder;
 
 template<std::size_t> class binder;
 
-template<typename T> database_binder& operator <<(database_binder& db,const T&& val);
-template<typename T> database_binder& operator <<(database_binder& db,const T& val);
+template<typename T> database_binder&& operator <<(database_binder&& db,T const&& val);
 template<typename T> void get_col_from_db(database_binder& db, int inx, T& val);
 
 
@@ -91,8 +90,7 @@ private:
 		|| std::is_same<sqlite_int64, Type>::value
 	>;
 
-	template<typename T> friend database_binder& operator <<(database_binder& ddb,const T&& val);
-	template<typename T> friend database_binder& operator <<(database_binder& ddb,const T& val);
+	template<typename T> friend database_binder&& operator <<(database_binder&& ddb,T const&& val);
 	template<typename T> friend void get_col_from_db(database_binder& ddb, int inx, T& val);
 
 protected:
@@ -257,12 +255,12 @@ public:
 };
 
 // int
-template<> database_binder& operator <<(database_binder& db,const int&& val) {
+template<> database_binder&& operator <<(database_binder&& db,int const&& val) {
 	if(sqlite3_bind_int(db._stmt, db._inx, val) != SQLITE_OK) {
 		db.throw_sqlite_error();
 	}
 	++db._inx;
-	return db;
+	return std::move(db);
 }
 template<> void get_col_from_db(database_binder& db, int inx, int& val) {
 	if(sqlite3_column_type(db._stmt, inx) == SQLITE_NULL) {
@@ -273,13 +271,13 @@ template<> void get_col_from_db(database_binder& db, int inx, int& val) {
 }
 
 // sqlite_int64
-template<> database_binder& operator <<(database_binder& db, const sqlite_int64&& val) {
+template<> database_binder&& operator <<(database_binder&& db, sqlite_int64 const&& val) {
 	if(sqlite3_bind_int64(db._stmt, db._inx, val) != SQLITE_OK) {
 		db.throw_sqlite_error();
 	}
 
 	++db._inx;
-	return db;
+	return std::move(db);
 }
 template<> void get_col_from_db(database_binder& db,int inx, sqlite3_int64& i) {
 	if(sqlite3_column_type(db._stmt, inx) == SQLITE_NULL) {
@@ -290,13 +288,13 @@ template<> void get_col_from_db(database_binder& db,int inx, sqlite3_int64& i) {
 }
 
 // float
-template<> database_binder& operator <<(database_binder& db,const float&& val) {
+template<> database_binder&& operator <<(database_binder&& db,float const&& val) {
 	if(sqlite3_bind_double(db._stmt, db._inx, double(val)) != SQLITE_OK) {
 		db.throw_sqlite_error();
 	}
 
 	++db._inx;
-	return db;
+	return std::move(db);
 }
 template<> void get_col_from_db(database_binder& db, int inx, float& f) {
 	if(sqlite3_column_type(db._stmt, inx) == SQLITE_NULL) {
@@ -307,13 +305,13 @@ template<> void get_col_from_db(database_binder& db, int inx, float& f) {
 }
 
 // double
-template<> database_binder& operator <<(database_binder& db,const double&& val) {
+template<> database_binder&& operator <<(database_binder&& db,double const&& val) {
 	if(sqlite3_bind_double(db._stmt, db._inx, val) != SQLITE_OK) {
 		db.throw_sqlite_error();
 	}
 
 	++db._inx;
-	return db;
+	return std::move(db);
 }
 template<> void get_col_from_db(database_binder& db, int inx, double& d) {
 	if(sqlite3_column_type(db._stmt, inx) == SQLITE_NULL) {
@@ -332,13 +330,13 @@ template<> void get_col_from_db(database_binder& db, int inx,std::string & s) {
 		s = std::string((char*)sqlite3_column_text(db._stmt, inx));
 	}
 }
-template<> database_binder& operator <<(database_binder& db, std::string const&& txt) {
+template<> database_binder&& operator <<(database_binder&& db, std::string const&& txt) {
 	if(sqlite3_bind_text(db._stmt, db._inx, txt.data(), -1, SQLITE_TRANSIENT) != SQLITE_OK) {
 		db.throw_sqlite_error();
 	}
 
 	++db._inx;
-	return db;
+	return std::move(db);
 }
 // std::u16string
 template<> void get_col_from_db(database_binder& db, int inx, std::u16string & w) {
@@ -349,19 +347,21 @@ template<> void get_col_from_db(database_binder& db, int inx, std::u16string & w
 		w = std::u16string((char16_t *)sqlite3_column_text16(db._stmt, inx));
 	}
 }
-template<> database_binder& operator <<(database_binder& db, std::u16string const&& txt) {
+template<> database_binder&& operator <<(database_binder&& db, std::u16string const&& txt) {
 	if(sqlite3_bind_text16(db._stmt, db._inx, txt.data(), -1, SQLITE_TRANSIENT) != SQLITE_OK) {
 		db.throw_sqlite_error();
 	}
 
 	++db._inx;
-	return db;
+	return std::move(db);
 }
 
 /* call the rvalue functions */
-template<typename T> database_binder& operator <<(database_binder& db, const T& val) { return db << std::move(val); }
+template<typename T> database_binder&& operator <<(database_binder&& db, T const& val) { return std::move(db) << std::move(val); }
 
 /*special case for string literals*/
-template<std::size_t N> database_binder& operator <<(database_binder& db, const char(&STR)[N]) { return db << std::string(STR); }
-template<std::size_t N> database_binder& operator <<(database_binder& db, const char16_t(&STR)[N]) { return db << std::u16string(STR); }
+template<std::size_t N> database_binder&& operator <<(database_binder&& db, const char(&STR)[N])
+	{ return std::move(db) << std::string(STR); }
+template<std::size_t N> database_binder&& operator <<(database_binder&& db, const char16_t(&STR)[N])
+	{ return std::move(db) << std::u16string(STR); }
 }
