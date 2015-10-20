@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <ctime>
 
-#include "../sqlite3.h"
+#include <sqlite3.h>
 
 #include "utility/function_traits.h"
 
