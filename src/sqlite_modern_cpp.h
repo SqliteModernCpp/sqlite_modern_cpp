@@ -4,6 +4,7 @@
 #include <functional>
 #include <stdexcept>
 #include <ctime>
+#include <tuple>
 
 #include <sqlite3.h>
 
@@ -95,6 +96,22 @@ class sqlite3_statment
 			
 			sqlite3_finalize(_stmt);
 		}
+};
+
+template<typename Tuple, int Element=0, bool Last=(std::tuple_size<Tuple>::value == Element)> struct tuple_iterate
+{
+	static void iterate(Tuple& t, database_binder& db)
+	{
+		get_col_from_db(db,Element, std::get<Element>(t));
+		tuple_iterate<Tuple, Element+1>::iterate(t, db);
+	}
+};
+
+template<typename Tuple, int Element> struct tuple_iterate<Tuple, Element, true>
+{
+	static void iterate(Tuple&, database_binder&)
+	{
+	}
 };
 
 class database_binder {
@@ -242,6 +259,15 @@ public:
 		Result& value) {
 		this->_extract_single_value([&value, this]{
 			get_col_from_db(*this,0, value);
+		});
+	}
+
+
+
+	template<typename... Types>
+	void operator>>(std::tuple<Types...>&& values){
+		this->_extract_single_value([&values, this]{
+			tuple_iterate<std::tuple<Types...>>::iterate(values, *this);
 		});
 	}
 
