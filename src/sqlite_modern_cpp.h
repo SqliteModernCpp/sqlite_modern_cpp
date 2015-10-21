@@ -11,7 +11,6 @@
 
 namespace sqlite {
 
-
 struct sqlite_exception: public std::runtime_error {
 	sqlite_exception(const char* msg):runtime_error(msg) {}
 };
@@ -24,18 +23,54 @@ template<std::size_t> class binder;
 template<typename T> database_binder&& operator <<(database_binder&& db,T const&& val);
 template<typename T> void get_col_from_db(database_binder& db, int inx, T& val);
 
+class sqlite3_statment
+{
+	private:
+		sqlite3_stmt* _stmt;
+
+	public:
+		
+		sqlite3_stmt** operator&()
+		{
+			return &_stmt;
+		}
+
+		operator sqlite3_stmt*()
+		{
+			return _stmt;
+		}
+
+		sqlite3_statment(sqlite3_stmt* s)
+		:_stmt(s)
+		{
+		}
+
+		~sqlite3_statment()
+		{
+			//Do not check for errors: an error code means that the 
+			//*execution* of the statement failed somehow. We deal with errors
+			//at that point so we don't need to know about errors here.
+			//
+			//Also, this is an RAII class to make sure we don't leak during exceptions
+			//so there's a reasonably chance we're already in an exception here.
+			
+			sqlite3_finalize(_stmt);
+		}
+};
 
 class database_binder {
 private:
 	sqlite3* const _db;
 	std::u16string _sql;
-	sqlite3_stmt* _stmt;
+	sqlite3_statment _stmt;
 	int _inx;
-
+	
+	bool execution_started = false;
 	bool throw_exceptions = true;
 	bool error_occured = false;
 
 	void _extract(std::function<void(void)> call_back) {
+		execution_started = true;
 		int hresult;
 
 		while ((hresult = sqlite3_step(_stmt)) == SQLITE_ROW) {
@@ -46,13 +81,10 @@ private:
 			throw_sqlite_error();
 		}
 
-		if (sqlite3_finalize(_stmt) != SQLITE_OK) {
-			throw_sqlite_error();
-		}
-
 		_stmt = nullptr;
 	}
 	void _extract_single_value(std::function<void(void)> call_back) {
+		execution_started = true;
 		int hresult;
 
 		if ((hresult = sqlite3_step(_stmt)) == SQLITE_ROW) {
@@ -64,10 +96,6 @@ private:
 		}
 
 		if (hresult != SQLITE_DONE) {
-			throw_sqlite_error();
-		}
-
-		if (sqlite3_finalize(_stmt) != SQLITE_OK) {
 			throw_sqlite_error();
 		}
 
@@ -108,10 +136,11 @@ protected:
 public:
 	friend class database;
 
-	~database_binder() {
-		throw_exceptions = false;
-		/* Will be executed if no >>op is found */
-		if (_stmt) {
+	~database_binder() noexcept(false){
+
+		/* Will be executed if no >>op is found, but not if an exception
+		   is in mud flight */
+		if (!execution_started && !std::current_exception()) {
 			int hresult;
 
 			while ((hresult = sqlite3_step(_stmt)) == SQLITE_ROW) { }
@@ -119,12 +148,6 @@ public:
 			if (hresult != SQLITE_DONE) {
 				throw_sqlite_error();
 			}
-
-			if (sqlite3_finalize(_stmt) != SQLITE_OK) {
-				throw_sqlite_error();
-			}
-
-			_stmt = nullptr;
 		}
 	}
 
