@@ -1,5 +1,5 @@
 #include<iostream>
-#include "sqlite_modern_cpp.h"
+#include <sqlite_modern_cpp.h>
 using namespace  sqlite;
 using namespace std;
 
@@ -53,6 +53,10 @@ int main() {
 		int count = 0;
 		db << "select count(*) from user" >> count;
 		cout << "cout : " << count << endl;
+
+		// you can also extract multiple column rows
+		db << "select age, name from user where _id=1;" >> tie(age, name);
+		cout << "Age = " << age << ", name = " << name << endl;
 
 		// this also works and the returned value will be automatically converted to string
 		string str_count;

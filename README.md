@@ -5,7 +5,7 @@ This library is a lightweight modern wrapper around sqlite C api .
 
 ```c++
 #include<iostream>
-#include "sqlite_modern_cpp.h"
+#include <sqlite_modern_cpp.h>
 using namespace  sqlite;
 using namespace std;
 
@@ -35,13 +35,16 @@ int main() {
 			<< 20
 			<< u"bob"
 			<< 83.25;
-		
-		cout << "The new record got assigned id " << db.last_insert_rowid() << endl;
 
+		int age = 21;
+		float weight = 68.5;
+		string name = "jack";
 		db << u"insert into user (age,name,weight) values (?,?,?);" // utf16 query string
-			<< 21
-			<< "jack"
-			<< 68.5;
+			<< age
+			<< name
+			<< weight;
+
+		cout << "The new record got assigned id " << db.last_insert_rowid() << endl;
 
 		// slects from user table on a condition ( age > 18 ) and executes
 		// the lambda for each row returned .
@@ -56,6 +59,10 @@ int main() {
 		int count = 0;
 		db << "select count(*) from user" >> count;
 		cout << "cout : " << count << endl;
+
+		// you can also extract multiple column rows
+		db << "select age, name from user where _id=1;" >> tie(age, name);
+		cout << "Age = " << age << ", name = " << name << endl;
 
 		// this also works and the returned value will be automatically converted to string
 		string str_count;
@@ -100,8 +107,8 @@ If you have databases where some rows may be null, you can use boost::optional t
 
 ```c++
 
-	#include "sqlite_modern_cpp.h"
-	#include "extensions/boost_optional.h"
+	#include <sqlite_modern_cpp.h>
+	#include <sqlite_modern_cpp/extensions/boost_optional.h>
 	
 	struct User {
 		long long _id;
@@ -150,8 +157,25 @@ If you have databases where some rows may be null, you can use boost::optional t
 	}
 ```
 
+Errors
+=====
+
+On error, the library throws an error class indicating the type of error. The error classes are derived from the SQLITE3 error names, so if the error code is SQLITE_CONSTRAINT, the error class thrown is sqlite::exceptions::constraint. Note that all errors are derived from sqlite::sqlite_exception and that itself is derived from std::runtime_exception.
 
 *node: for NDK use the full path to your database file : `sqlite::database db("/data/data/com.your.package/dbfile.db")`*.
+
+Building and Installing
+=====
+
+The usual way works for installing:
+
+```bash
+./configure && make && sudo make install
+
+```
+
+Note, there's nothing to make, so you there's no need to run configure and you can simply point your compiler at the hdr/ directory.
+
 
 ##License
 

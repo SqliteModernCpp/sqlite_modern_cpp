@@ -1,0 +1,36 @@
+#Standard boilerplate
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+mandir = @mandir@
+includedir = @includedir@
+datarootdir = @datarootdir@
+pkgconfig = @PKGCONFIG_LIBDIR@
+
+ifneq "$(DESTDIR)" ""
+DESTDIR+=/
+endif
+
+CXX=@CXX@
+CXXFLAGS=@CXXFLAGS@ -I hdr/
+LDFLAGS=@LDFLAGS@ @LIBS@
+
+hdr = $(DESTDIR)$(includedir)/
+
+
+.PHONY: all clean testclean 
+
+all:
+	@echo There is nothing to be compiled.
+	@echo It is now ready to be installed.
+
+install:
+	mkdir -p $(hdr)/sqlite_modern_cpp
+	cp -r hdr/* $(hdr)/
+	[ "$(pkgconfig)" = "" ] || mkdir -p $(DESTDIR)$(pkgconfig)
+	[ "$(pkgconfig)" = "" ] || cp sqlite_modern_cpp.pc $(DESTDIR)$(pkgconfig)/
+
+clean:
+	rm -f src/*.o src/test
+
+src/test: src/test.o
+	$(CXX) -o $@ $^ $(LDFLAGS)

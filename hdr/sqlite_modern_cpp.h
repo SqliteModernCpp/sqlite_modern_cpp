@@ -8,7 +8,7 @@
 
 #include <sqlite3.h>
 
-#include "utility/function_traits.h"
+#include <sqlite_modern_cpp/utility/function_traits.h>
 
 namespace sqlite {
 
