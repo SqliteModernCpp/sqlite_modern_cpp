@@ -1,0 +1,15 @@
+language: cpp
+sudo: required
+dist: trusty
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - gcc-5
+      - g++-5
+      - libsqlite3-dev
+
+before_install:
+  - export CXX="g++-5" CC="gcc-5"
