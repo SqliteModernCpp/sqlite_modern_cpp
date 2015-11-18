@@ -69,7 +69,7 @@ class sqlite3_statment
 		sqlite3_stmt* _stmt;
 
 	public:
-		
+
 		sqlite3_stmt** operator&()
 		{
 			return &_stmt;
@@ -87,13 +87,13 @@ class sqlite3_statment
 
 		~sqlite3_statment()
 		{
-			//Do not check for errors: an error code means that the 
+			//Do not check for errors: an error code means that the
 			//*execution* of the statement failed somehow. We deal with errors
 			//at that point so we don't need to know about errors here.
 			//
 			//Also, this is an RAII class to make sure we don't leak during exceptions
 			//so there's a reasonably chance we're already in an exception here.
-			
+
 			sqlite3_finalize(_stmt);
 		}
 };
@@ -120,7 +120,7 @@ private:
 	std::u16string _sql;
 	sqlite3_statment _stmt;
 	int _inx;
-	
+
 	bool execution_started = false;
 	bool throw_exceptions = true;
 	bool error_occured = false;
@@ -203,7 +203,7 @@ public:
 
 		/* Will be executed if no >>op is found, but not if an exception
 		   is in mud flight */
-		if (!execution_started && !std::current_exception()) {
+		if (!execution_started && !std::uncaught_exception()) {
 			int hresult;
 
 			while ((hresult = sqlite3_step(_stmt)) == SQLITE_ROW) { }
