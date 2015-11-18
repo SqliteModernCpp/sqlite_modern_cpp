@@ -203,7 +203,7 @@ public:
 
 		/* Will be executed if no >>op is found, but not if an exception
 		   is in mud flight */
-		if (!execution_started && !std::current_exception()) {
+		if (!execution_started && !std::uncaught_exception()) {
 			int hresult;
 
 			while ((hresult = sqlite3_step(_stmt)) == SQLITE_ROW) { }
