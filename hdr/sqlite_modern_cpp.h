@@ -63,7 +63,7 @@ template<std::size_t> class binder;
 template<typename T> database_binder&& operator <<(database_binder&& db,T const&& val);
 template<typename T> void get_col_from_db(database_binder& db, int inx, T& val);
 
-class sqlite3_statment
+class sqlite3_statement
 {
 	private:
 		sqlite3_stmt* _stmt;
@@ -80,12 +80,12 @@ class sqlite3_statment
 			return _stmt;
 		}
 
-		sqlite3_statment(sqlite3_stmt* s)
+		sqlite3_statement(sqlite3_stmt* s)
 		:_stmt(s)
 		{
 		}
 
-		~sqlite3_statment()
+		~sqlite3_statement()
 		{
 			//Do not check for errors: an error code means that the 
 			//*execution* of the statement failed somehow. We deal with errors
@@ -118,7 +118,7 @@ class database_binder {
 private:
 	sqlite3* const _db;
 	std::u16string _sql;
-	sqlite3_statment _stmt;
+	sqlite3_statement _stmt;
 	int _inx;
 	
 	bool execution_started = false;
