@@ -9,8 +9,8 @@ namespace sqlite {
 
 		template <typename Function>
 		struct function_traits : public function_traits<
-									 decltype(&Function::operator())
-													   > { };
+			decltype(&Function::operator())
+		> { };
 
 		template <
 			typename    ClassType,
