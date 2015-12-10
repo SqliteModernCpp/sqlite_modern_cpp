@@ -452,7 +452,7 @@ template<> inline void get_col_from_db(database_binder& db, int inx,std::string 
 		s = std::string();
 	} else {
 		sqlite3_column_bytes(db._stmt, inx);
-		s = std::string((char*)sqlite3_column_text(db._stmt, inx));
+		s = std::string(reinterpret_cast<char const *>(sqlite3_column_text(db._stmt, inx)));
 	}
 }
 template<> inline database_binder&& operator <<(database_binder&& db, std::string const&& txt) {
@@ -470,7 +470,7 @@ template<> inline void get_col_from_db(database_binder& db, int inx, std::u16str
 		w = std::u16string();
 	} else {
 		sqlite3_column_bytes16(db._stmt, inx);
-		w = std::u16string((char16_t *)sqlite3_column_text16(db._stmt, inx));
+		w = std::u16string(reinterpret_cast<char16_t const *>(sqlite3_column_text16(db._stmt, inx)));
 	}
 }
 template<> inline database_binder&& operator <<(database_binder&& db, std::u16string const&& txt) {
