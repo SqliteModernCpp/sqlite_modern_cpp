@@ -1,3 +1,5 @@
+[![Build Status](https://drone.io/github.com/aminroosta/sqlite_modern_cpp/status.png)](https://drone.io/github.com/aminroosta/sqlite_modern_cpp/latest)
+
 sqlite modern cpp wrapper
 ====
 
