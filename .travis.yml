@@ -10,6 +10,7 @@ addons:
       - gcc-5
       - g++-5
       - libsqlite3-dev
+      - libboost-all-dev
 
 before_install:
   - export CXX="g++-5" CC="gcc-5"
