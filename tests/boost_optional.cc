@@ -3,9 +3,6 @@
 #define _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
 #include <sqlite_modern_cpp.h>
 
-
-#include <sqlite_modern_cpp\extensions\std_time_t.h>
-
 using namespace sqlite;
 using namespace std;
 
