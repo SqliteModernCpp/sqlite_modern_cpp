@@ -7,7 +7,7 @@
 #include <tuple>
 
 #ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
-	#include <boost\optional.hpp>
+	#include <boost/optional.hpp>
 #endif
 
 #include <sqlite3.h>
