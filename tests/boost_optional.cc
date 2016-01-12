@@ -19,9 +19,9 @@ void select(database& db, bool should_be_null) {
 	db << "select id,val from test" >> [&](long long id, boost::optional<int> val) {
 		id = id;
 		if(should_be_null) {
-			if(val) exit(1);
+			if(val) exit(EXIT_FAILURE);
 		} else {
-			if(!val) exit(1);
+			if(!val) exit(EXIT_FAILURE);
 		}
 	};
 }
@@ -51,7 +51,7 @@ int main() {
 		db << "drop table if exists test";
 		db <<
 			"create table if not exists test ("
-			"   id integer primary key autoincrement not null,"
+			"   id integer primary key,"
 			"   val int"
 			");";
 
@@ -63,6 +63,7 @@ int main() {
 
 	} catch(exception& e) {
 		cout << e.what() << endl;
+		exit(EXIT_FAILURE);
 	}
-	return 0;
+	exit(EXIT_SUCCESS);
 }
