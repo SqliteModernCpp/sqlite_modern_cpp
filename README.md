@@ -105,12 +105,12 @@ You can use transactions with `begin;`, `commit;` and `rollback;` commands.
 
 Dealing with NULL values
 =====
-If you have databases where some rows may be null, you can use boost::optional to retain the NULL value between C++ variables and the database. Note that you must enable the boost support by including the type extension for it.
+If you have databases where some rows may be null, you can use boost::optional to retain the NULL value between C++ variables and the database. Note that you must enable the boost support by defining _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT befor importing the header.
 
 ```c++
 
+	#define _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
 	#include <sqlite_modern_cpp.h>
-	#include <sqlite_modern_cpp/extensions/boost_optional.h>
 	
 	struct User {
 		long long _id;

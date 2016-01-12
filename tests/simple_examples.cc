@@ -41,7 +41,7 @@ int main()
 		if(str != "world")
 		{
 			cout << "Bad result on line " << __LINE__ << endl;
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		
@@ -49,13 +49,14 @@ int main()
 	catch(sqlite_exception e)
 	{
 		cout << "Unexpected error " << e.what() << endl;
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	catch(...)
 	{
 		cout << "Unknown error\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	cout << "OK\n";
+	exit(EXIT_SUCCESS);
 }
