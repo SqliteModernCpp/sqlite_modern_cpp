@@ -2,14 +2,15 @@
 
 namespace sqlite {
 	// boost::uuid
-	template<> database_binder& operator <<(database_binder& db, const boost::uuids::uuid& uuid) {
+	template<> database_binder&& operator <<(database_binder&& db, const boost::uuids::uuid&& uuid) {
 
-		if(sqlite3_bind_blob(db._stmt, db._inx, uuid.begin(), uuid.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
-			db.throw_sqlite_error();
+		auto ret = sqlite3_bind_blob(db._stmt, db._inx, uuid.begin(), uuid.size(), SQLITE_TRANSIENT);
+		if(ret != SQLITE_OK) {
+			db.throw_sqlite_error(ret);
 		}
 
 		++db._inx;
-		return db;
+		return std::move(db);
 	}
 	template <> void get_col_from_db(database_binder& db, int inx, boost::uuids::uuid& uuid) {
 		if(sqlite3_column_type(db._stmt, inx) == SQLITE_NULL) {

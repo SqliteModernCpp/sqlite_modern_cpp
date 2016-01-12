@@ -11,14 +11,15 @@ namespace sqlite {
 		a = tmp.get_array();
 	}
 
-	template<> database_binder& operator <<(database_binder& db, const json_spirit::mArray& val) {
+	template<> database_binder&& operator <<(database_binder&& db, const json_spirit::mArray&& val) {
 		auto tmp = json_spirit::write(val);
-		if(sqlite3_bind_blob(db._stmt, db._inx, tmp.c_str() , tmp.size() , SQLITE_TRANSIENT) != SQLITE_OK) {
-			db.throw_sqlite_error();
+		auto ret = sqlite3_bind_blob(db._stmt, db._inx, tmp.c_str(), tmp.size(), SQLITE_TRANSIENT);
+		if(ret != SQLITE_OK) {
+			db.throw_sqlite_error(ret);
 		}
 
 		++db._inx;
-		return db;
+		return std::move(db);
 	}
 	
 	// json_spirit::mObject
@@ -31,13 +32,14 @@ namespace sqlite {
 		a = tmp.get_obj();
 	}
 
-	template<> database_binder& operator <<(database_binder& db, const json_spirit::mObject& val) {
+	template<> database_binder&& operator <<(database_binder&& db, const json_spirit::mObject&& val) {
 		auto tmp = json_spirit::write(val);
-		if(sqlite3_bind_blob(db._stmt, db._inx, tmp.c_str(), tmp.size(), SQLITE_TRANSIENT) != SQLITE_OK) {
-			db.throw_sqlite_error();
+		auto ret = sqlite3_bind_blob(db._stmt, db._inx, tmp.c_str(), tmp.size(), SQLITE_TRANSIENT);
+		if( ret != SQLITE_OK) {
+			db.throw_sqlite_error(ret);
 		}
 
 		++db._inx;
-		return db;
+		return std::move(db);
 	}
 }
