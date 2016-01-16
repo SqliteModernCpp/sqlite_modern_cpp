@@ -8,3 +8,4 @@ config.status
 Makefile
 
 tests/*
+!tests/*.cc
