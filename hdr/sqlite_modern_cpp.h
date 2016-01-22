@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <ctime>
 #include <tuple>
+#include <memory>
 
 #include <sqlite3.h>
 
@@ -284,46 +285,36 @@ public:
 
 class database {
 private:
-	sqlite3 * _db;
-	bool _connected;
-	bool _ownes_db;
+	std::shared_ptr<sqlite3> _db;
 
 public:
-	database(std::u16string const & db_name):
-		_db(nullptr),
-		_connected(false),
-		_ownes_db(true) {
-		_connected = sqlite3_open16(db_name.data(), &_db) == SQLITE_OK;
+	database(std::u16string const & db_name): _db(nullptr) {
+		sqlite3* tmp = nullptr;
+		if(sqlite3_open16(db_name.data(), &tmp) != SQLITE_OK) {} // throw_sqlite_error should be in database!
+		
+		_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); ptr = nullptr; }); // close and null to be sure
+		//_db.reset(tmp, sqlite3_close); // alternative close. (faster?)
+
+		std::cout << "-Use count" << _db.use_count();
 	}
 
 	database(std::string const & db_name):
 		database(std::u16string(db_name.begin(), db_name.end())) { }
 
-	database(sqlite3* db):
-		_db(db),
-		_connected(SQLITE_OK),
-		_ownes_db(false) { }
-
-	~database() {
-		if (_db && _ownes_db) {
-			sqlite3_close_v2(_db);
-			_db = nullptr;
-		}
-	}
+	database(std::shared_ptr<sqlite3> db):
+		_db(db){ }
 
 	database_binder operator<<(std::string const& sql) const {
-		return database_binder(_db, sql);
+		return database_binder(_db.get(), sql);
 	}
 	database_binder operator<<(std::u16string const& sql) const {
-		return database_binder(_db, sql);
+		return database_binder(_db.get(), sql);
 	}
 
-	operator bool() const {
-		return _connected;
-	}
+	std::shared_ptr<sqlite3> get_sqlite3_connection() const { return _db; }
 
 	sqlite3_int64 last_insert_rowid() const {
-		return sqlite3_last_insert_rowid(_db);
+		return sqlite3_last_insert_rowid(_db.get());
 	}
 };
 
