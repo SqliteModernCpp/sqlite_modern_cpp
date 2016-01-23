@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <ctime>
 #include <tuple>
+#include <memory>
 
 #ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
 	#include <boost/optional.hpp>
@@ -57,6 +58,41 @@ namespace exceptions
 	//Some additional errors are here for the C++ interface
 	class more_rows : public sqlite_exception { using sqlite_exception::sqlite_exception;};
 	class no_rows   : public sqlite_exception { using sqlite_exception::sqlite_exception;};
+
+	static void throw_sqlite_error(const int& error_code) {
+		if(error_code == SQLITE_ERROR) throw exceptions::error(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_INTERNAL) throw exceptions::internal  (sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_PERM) throw exceptions::perm(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_ABORT) throw exceptions::abort(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_BUSY) throw exceptions::busy(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_LOCKED) throw exceptions::locked(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_NOMEM) throw exceptions::nomem(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_READONLY) throw exceptions::readonly(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_INTERRUPT) throw exceptions::interrupt(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_IOERR) throw exceptions::ioerr(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_CORRUPT) throw exceptions::corrupt(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_NOTFOUND) throw exceptions::notfound(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_FULL) throw exceptions::full(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_CANTOPEN) throw exceptions::cantopen(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_PROTOCOL) throw exceptions::protocol(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_EMPTY) throw exceptions::empty(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_SCHEMA) throw exceptions::schema(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_TOOBIG) throw exceptions::toobig(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_CONSTRAINT) throw exceptions::constraint(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_MISMATCH) throw exceptions::mismatch(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_MISUSE) throw exceptions::misuse(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_NOLFS) throw exceptions::nolfs(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_AUTH) throw exceptions::auth(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_FORMAT) throw exceptions::format(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_RANGE) throw exceptions::range(sqlite3_errstr(error_code));
+		else if(error_code == SQLITE_NOTADB) throw exceptions::notadb(sqlite3_errstr(error_code));
+		else throw sqlite_exception(sqlite3_errstr(error_code));
+	}
+
+	static void throw_custom_error(const char* str) {
+		throw std::runtime_error(str);
+	}
+
 }
 
 class database;
@@ -64,43 +100,8 @@ class database_binder;
 
 template<std::size_t> class binder;
 
-template<typename T> database_binder&& operator <<(database_binder&& db,T const&& val);
-template<typename T> void get_col_from_db(database_binder& db, int inx, T& val);
-
-class sqlite3_statement
-{
-	private:
-		sqlite3_stmt* _stmt;
-
-	public:
-		
-		sqlite3_stmt** operator&()
-		{
-			return &_stmt;
-		}
-
-		operator sqlite3_stmt*()
-		{
-			return _stmt;
-		}
-
-		sqlite3_statement(sqlite3_stmt* s)
-		:_stmt(s)
-		{
-		}
-
-		~sqlite3_statement()
-		{
-			//Do not check for errors: an error code means that the 
-			//*execution* of the statement failed somehow. We deal with errors
-			//at that point so we don't need to know about errors here.
-			//
-			//Also, this is an RAII class to make sure we don't leak during exceptions
-			//so there's a reasonably chance we're already in an exception here.
-			
-			sqlite3_finalize(_stmt);
-		}
-};
+//template<typename T> database_binder&& operator <<(database_binder&& db,T const&& val);
+//template<typename T> void get_col_from_db(database_binder& db, int inx, T& val);
 
 template<typename Tuple, int Element=0, bool Last=(std::tuple_size<Tuple>::value == Element)> struct tuple_iterate
 {
@@ -119,60 +120,68 @@ template<typename Tuple, int Element> struct tuple_iterate<Tuple, Element, true>
 };
 
 class database_binder {
+
+public:
+	typedef std::unique_ptr<sqlite::database_binder> chain_type;
+
+	void reset() {
+		sqlite3_reset(_stmt.get());
+		sqlite3_clear_bindings(_stmt.get());
+		_inx = 1;
+	}
+
 private:
-	sqlite3* const _db;
+	std::shared_ptr<sqlite3> _db;
+	std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> _stmt;
 	std::u16string _sql;
-	sqlite3_statement _stmt;
 	int _inx;
 	
 	bool execution_started = false;
-	bool throw_exceptions = true;
-	bool error_occured = false;
 
 	void _extract(std::function<void(void)> call_back) {
+		std::cout << "extract\n";
 		execution_started = true;
 		int hresult;
 
-		while ((hresult = sqlite3_step(_stmt)) == SQLITE_ROW) {
+		while ((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {
 			call_back();
 		}
 
 		if (hresult != SQLITE_DONE) {
-			throw_sqlite_error(hresult);
+			exceptions::throw_sqlite_error(hresult);
 		}
-
-		_stmt = nullptr;
+		reset();
 	}
+
 	void _extract_single_value(std::function<void(void)> call_back) {
+		std::cout << "extract_single_value\n";
 		execution_started = true;
 		int hresult;
 
-		if ((hresult = sqlite3_step(_stmt)) == SQLITE_ROW) {
+		if((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {
 			call_back();
 		}
 		else if(hresult == SQLITE_DONE)
 		{
-			if(throw_exceptions)
-				throw exceptions::no_rows("no rows to extract: exactly 1 row expected");
+			exceptions::throw_custom_error("no rows to extract: exactly 1 row expected");
 		}
 
-		if ((hresult = sqlite3_step(_stmt)) == SQLITE_ROW) {
-			if(throw_exceptions)
-				throw exceptions::more_rows("not all rows extracted");
+		if ((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {
+			exceptions::throw_custom_error("not all rows extracted");
 		}
 
 		if (hresult != SQLITE_DONE) {
-			throw_sqlite_error(hresult);
+			exceptions::throw_sqlite_error(hresult);
 		}
-
-		_stmt = nullptr;
+		reset();
 	}
 
-	void _prepare() {
+	sqlite3_stmt* _prepare( const std::u16string& sql ) {
 		int hresult;
-		if ((hresult = sqlite3_prepare16_v2(_db, _sql.data(), -1, &_stmt, nullptr)) != SQLITE_OK) {
-			throw_sqlite_error(hresult);
-		}
+		sqlite3_stmt* tmp = nullptr;
+		hresult = sqlite3_prepare16_v2(_db.get(), sql.data(), -1, &tmp, nullptr);
+		if((hresult) != SQLITE_OK) exceptions::throw_sqlite_error(hresult);
+		return tmp;
 	}
 
 	template <typename Type>
@@ -185,82 +194,54 @@ private:
 		|| std::is_same<sqlite_int64, Type>::value
 	>;
 
-	template<typename T> friend database_binder&& operator <<(database_binder&& ddb,T const&& val);
-	template<typename T> friend void get_col_from_db(database_binder& ddb, int inx, T& val);
+	template<typename T> friend database_binder::chain_type& operator <<(database_binder::chain_type& db, const T& val);
+	template<typename T> friend void get_col_from_db(database_binder& db, int inx, T& val);
+
 
 #ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
-	template <typename BoostOptionalT> friend database_binder&& operator <<(database_binder&& db, const boost::optional<BoostOptionalT>&& val);
+	template <typename BoostOptionalT> friend database_binder::chain_type& operator <<(database_binder::chain_type& db, const boost::optional<BoostOptionalT>&& val);
 	template <typename BoostOptionalT> friend void get_col_from_db(database_binder& db, int inx, boost::optional<BoostOptionalT>& o);
 #endif
 
-protected:
-	database_binder(sqlite3* db, std::u16string const & sql):
-		_db(db),
-		_sql(sql),
-		_stmt(nullptr),
-		_inx(1) {
-		_prepare();
-	}
 
-	database_binder(sqlite3* db, std::string const & sql):
-		database_binder(db, std::u16string(sql.begin(), sql.end())) { }
+	database_binder() = delete;	
+	database_binder(const database_binder& other) = delete;
+	database_binder& operator=(const database_binder&) = delete;
+	database_binder(const database_binder&& other) = delete;
+
 
 public:
-	friend class database;
+
+	database_binder(std::shared_ptr<sqlite3> db, std::u16string const & sql):
+		_db(db),
+		_sql(sql),
+		_stmt(_prepare(sql),sqlite3_finalize),
+		_inx(1) {
+		std::cout << "New stmt\n";
+	}
+
+	database_binder(std::shared_ptr<sqlite3> db, std::string const & sql):
+		database_binder(db, std::u16string(sql.begin(), sql.end())) { }
+
+
+	//friend class database;
 
 	~database_binder() noexcept(false){
-
+		std::cout << "Delete stmt ";
 		/* Will be executed if no >>op is found, but not if an exception
 		   is in mud flight */
 		if (!execution_started && !std::uncaught_exception()) {
 			int hresult;
 
-			while ((hresult = sqlite3_step(_stmt)) == SQLITE_ROW) { }
+			while ((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) { }
 
 			if (hresult != SQLITE_DONE) {
-				throw_sqlite_error(hresult);
+				exceptions::throw_sqlite_error(hresult);
 			}
+			std::cout << "with execution!\n";
+		} else {
+			std::cout << "its used...\n";
 		}
-	}
-
-	void throw_sqlite_error(int error_code) {
-		if(throw_exceptions) {
-			if(error_code == SQLITE_ERROR     ) throw exceptions::error     (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_INTERNAL  ) throw exceptions::internal  (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_PERM      ) throw exceptions::perm      (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_ABORT     ) throw exceptions::abort     (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_BUSY      ) throw exceptions::busy      (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_LOCKED    ) throw exceptions::locked    (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_NOMEM     ) throw exceptions::nomem     (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_READONLY  ) throw exceptions::readonly  (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_INTERRUPT ) throw exceptions::interrupt (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_IOERR     ) throw exceptions::ioerr     (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_CORRUPT   ) throw exceptions::corrupt   (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_NOTFOUND  ) throw exceptions::notfound  (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_FULL      ) throw exceptions::full      (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_CANTOPEN  ) throw exceptions::cantopen  (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_PROTOCOL  ) throw exceptions::protocol  (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_EMPTY     ) throw exceptions::empty     (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_SCHEMA    ) throw exceptions::schema    (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_TOOBIG    ) throw exceptions::toobig    (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_CONSTRAINT) throw exceptions::constraint(sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_MISMATCH  ) throw exceptions::mismatch  (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_MISUSE    ) throw exceptions::misuse    (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_NOLFS     ) throw exceptions::nolfs     (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_AUTH      ) throw exceptions::auth      (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_FORMAT    ) throw exceptions::format    (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_RANGE     ) throw exceptions::range     (sqlite3_errmsg(_db));
-			else if(error_code == SQLITE_NOTADB    ) throw exceptions::notadb    (sqlite3_errmsg(_db));
-			else throw sqlite_exception(sqlite3_errmsg(_db));
-		}
-		error_occured = true;
-	}
-
-	void throw_custom_error(const char* str) {
-		if(throw_exceptions) {
-			throw std::runtime_error(str);
-		}
-		error_occured = true;
 	}
 
 	template <typename Result>
@@ -270,8 +251,6 @@ public:
 			get_col_from_db(*this,0, value);
 		});
 	}
-
-
 
 	template<typename... Types>
 	void operator>>(std::tuple<Types...>&& values){
@@ -293,47 +272,35 @@ public:
 
 class database {
 private:
-	sqlite3 * _db;
-	bool _connected;
-	bool _ownes_db;
+	std::shared_ptr<sqlite3> _db;
 
 public:
-	database(std::u16string const & db_name):
-		_db(nullptr),
-		_connected(false),
-		_ownes_db(true) {
-		_connected = sqlite3_open16(db_name.data(), &_db) == SQLITE_OK;
+	database(std::u16string const & db_name): _db(nullptr) {
+		sqlite3* tmp = nullptr;
+		auto ret = sqlite3_open16(db_name.data(), &tmp);
+		if(ret != SQLITE_OK) exceptions::throw_sqlite_error(ret);
+		_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); ptr = nullptr; }); // close and null to be sure
+		//_db.reset(tmp, sqlite3_close); // alternative close. (faster?)
 	}
 
 	database(std::string const & db_name):
 		database(std::u16string(db_name.begin(), db_name.end())) { }
 
-	database(sqlite3* db):
-		_db(db),
-		_connected(SQLITE_OK),
-		_ownes_db(false) { }
+	database(std::shared_ptr<sqlite3> db):
+		_db(db){ }
 
-	~database() {
-		if (_db && _ownes_db) {
-			sqlite3_close_v2(_db);
-			_db = nullptr;
-		}
+	template<typename T>
+	database_binder::chain_type operator<<(const T& sql) const {
+		database_binder::chain_type dbb = std::make_unique<database_binder>(_db, std::string(sql));//  std::make_shared<database_binder>(_db, sql);
+		return dbb;
 	}
 
-	database_binder operator<<(std::string const& sql) const {
-		return database_binder(_db, sql);
-	}
-	database_binder operator<<(std::u16string const& sql) const {
-		return database_binder(_db, sql);
-	}
-
-	operator bool() const {
-		return _connected;
-	}
+	std::shared_ptr<sqlite3> get_sqlite3_connection() const { return _db; }
 
 	sqlite3_int64 last_insert_rowid() const {
-		return sqlite3_last_insert_rowid(_db);
+		return sqlite3_last_insert_rowid(_db.get());
 	}
+
 };
 
 template<std::size_t Count>
@@ -385,131 +352,131 @@ public:
 };
 
 // int
-template<> inline database_binder&& operator <<(database_binder&& db,int const&& val) {
+template<> inline database_binder::chain_type& operator<<(database_binder::chain_type& db, const int& val) {
 	int hresult;
-	if((hresult = sqlite3_bind_int(db._stmt, db._inx, val)) != SQLITE_OK) {
-		db.throw_sqlite_error(hresult);
+	if((hresult = sqlite3_bind_int(db->_stmt.get(), db->_inx, val)) != SQLITE_OK) {
+		exceptions::throw_sqlite_error(hresult);
 	}
-	++db._inx;
-	return std::move(db);
+	++db->_inx;
+	return db;
 }
 template<> inline void get_col_from_db(database_binder& db, int inx, int& val) {
-	if(sqlite3_column_type(db._stmt, inx) == SQLITE_NULL) {
+	if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
 		val = 0;
 	} else {
-		val = sqlite3_column_int(db._stmt, inx);
+		val = sqlite3_column_int(db._stmt.get(), inx);
 	}
 }
 
 // sqlite_int64
-template<> inline database_binder&& operator <<(database_binder&& db, sqlite_int64 const&& val) {
+template<> inline database_binder::chain_type& operator <<(database_binder::chain_type& db, const sqlite_int64&  val) {
 	int hresult;
-	if((hresult = sqlite3_bind_int64(db._stmt, db._inx, val)) != SQLITE_OK) {
-		db.throw_sqlite_error(hresult);
+	if((hresult = sqlite3_bind_int64(db->_stmt.get(), db->_inx, val)) != SQLITE_OK) {
+		exceptions::throw_sqlite_error(hresult);
 	}
 
-	++db._inx;
+	++db->_inx;
 	return std::move(db);
 }
 template<> inline void get_col_from_db(database_binder& db,int inx, sqlite3_int64& i) {
-	if(sqlite3_column_type(db._stmt, inx) == SQLITE_NULL) {
+	if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
 		i = 0;
 	} else {
-		i = sqlite3_column_int64(db._stmt, inx);
+		i = sqlite3_column_int64(db._stmt.get(), inx);
 	}
 }
 
 // float
-template<> inline database_binder&& operator <<(database_binder&& db,float const&& val) {
+template<> inline database_binder::chain_type& operator <<(database_binder::chain_type& db, const float& val) {
 	int hresult;
-	if((hresult = sqlite3_bind_double(db._stmt, db._inx, double(val))) != SQLITE_OK) {
-		db.throw_sqlite_error(hresult);
+	if((hresult = sqlite3_bind_double(db->_stmt.get(), db->_inx, double(val))) != SQLITE_OK) {
+		exceptions::throw_sqlite_error(hresult);
 	}
 
-	++db._inx;
+	++db->_inx;
 	return std::move(db);
 }
 template<> inline void get_col_from_db(database_binder& db, int inx, float& f) {
-	if(sqlite3_column_type(db._stmt, inx) == SQLITE_NULL) {
+	if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
 		f = 0;
 	} else {
-		f = float(sqlite3_column_double(db._stmt, inx));
+		f = float(sqlite3_column_double(db._stmt.get(), inx));
 	}
 }
 
 // double
-template<> inline database_binder&& operator <<(database_binder&& db,double const&& val) {
+template<> inline database_binder::chain_type& operator <<(database_binder::chain_type& db, const double& val) {
 	int hresult;
-	if((hresult = sqlite3_bind_double(db._stmt, db._inx, val)) != SQLITE_OK) {
-		db.throw_sqlite_error(hresult);
+	if((hresult = sqlite3_bind_double(db->_stmt.get(), db->_inx, val)) != SQLITE_OK) {
+		exceptions::throw_sqlite_error(hresult);
 	}
 
-	++db._inx;
+	++db->_inx;
 	return std::move(db);
 }
 template<> inline void get_col_from_db(database_binder& db, int inx, double& d) {
-	if(sqlite3_column_type(db._stmt, inx) == SQLITE_NULL) {
+	if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
 		d = 0;
 	} else {
-		d = sqlite3_column_double(db._stmt, inx);
+		d = sqlite3_column_double(db._stmt.get(), inx);
 	}
 }
 
 // std::string
 template<> inline void get_col_from_db(database_binder& db, int inx,std::string & s) {
-	if(sqlite3_column_type(db._stmt, inx) == SQLITE_NULL) {
+	if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
 		s = std::string();
 	} else {
-		sqlite3_column_bytes(db._stmt, inx);
-		s = std::string(reinterpret_cast<char const *>(sqlite3_column_text(db._stmt, inx)));
+		sqlite3_column_bytes(db._stmt.get(), inx);
+		s = std::string(reinterpret_cast<char const *>(sqlite3_column_text(db._stmt.get(), inx)));
 	}
 }
-template<> inline database_binder&& operator <<(database_binder&& db, std::string const&& txt) {
+template<> inline database_binder::chain_type& operator <<(database_binder::chain_type& db, const std::string& txt) {
 	int hresult;
-	if((hresult = sqlite3_bind_text(db._stmt, db._inx, txt.data(), -1, SQLITE_TRANSIENT)) != SQLITE_OK) {
-		db.throw_sqlite_error(hresult);
+	if((hresult = sqlite3_bind_text(db->_stmt.get(), db->_inx, txt.data(), -1, SQLITE_TRANSIENT)) != SQLITE_OK) {
+		exceptions::throw_sqlite_error(hresult);
 	}
 
-	++db._inx;
+	++db->_inx;
 	return std::move(db);
 }
 // std::u16string
 template<> inline void get_col_from_db(database_binder& db, int inx, std::u16string & w) {
-	if(sqlite3_column_type(db._stmt, inx) == SQLITE_NULL) {
+	if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
 		w = std::u16string();
 	} else {
-		sqlite3_column_bytes16(db._stmt, inx);
-		w = std::u16string(reinterpret_cast<char16_t const *>(sqlite3_column_text16(db._stmt, inx)));
+		sqlite3_column_bytes16(db._stmt.get(), inx);
+		w = std::u16string(reinterpret_cast<char16_t const *>(sqlite3_column_text16(db._stmt.get(), inx)));
 	}
 }
 
 // boost::optinal support for NULL values
-template<> inline database_binder&& operator <<(database_binder&& db, std::u16string const&& txt) {
+template<> inline database_binder::chain_type& operator <<(database_binder::chain_type& db, const std::u16string& txt) {
 	int hresult;
-	if((hresult = sqlite3_bind_text16(db._stmt, db._inx, txt.data(), -1, SQLITE_TRANSIENT)) != SQLITE_OK) {
-		db.throw_sqlite_error(hresult);
+	if((hresult = sqlite3_bind_text16(db->_stmt.get(), db->_inx, txt.data(), -1, SQLITE_TRANSIENT)) != SQLITE_OK) {
+		exceptions::throw_sqlite_error(hresult);
 	}
 
-	++db._inx;
+	++db->_inx;
 	return std::move(db);
 }
 
 #ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
-template <typename BoostOptionalT> database_binder&& operator <<(database_binder&& db, const boost::optional<BoostOptionalT>&& val) {
+template <typename BoostOptionalT> database_binder::chain_type& operator <<(database_binder::chain_type& db, const boost::optional<BoostOptionalT>& val) {
 	if(val) {
 		return operator << (std::move(db), std::move(*val));
 	}
 	int hresult;
-	if((hresult = sqlite3_bind_null(db._stmt, db._inx)) != SQLITE_OK) {
-		db.throw_sqlite_error(hresult);
+	if((hresult = sqlite3_bind_null(db->_stmt.get(), db._inx)) != SQLITE_OK) {
+		exceptions::throw_sqlite_error(hresult);
 	}
 
 	++db._inx;
 	return std::move(db);
 }
 
-template <typename BoostOptionalT> void get_col_from_db(database_binder& db, int inx, boost::optional<BoostOptionalT>& o) {
-	if(sqlite3_column_type(db._stmt, inx) == SQLITE_NULL) {
+template <typename BoostOptionalT> void get_col_from_db(database_binder::chain_type& db, int inx, boost::optional<BoostOptionalT>& o) {
+	if(sqlite3_column_type(db->_stmt.get(), inx) == SQLITE_NULL) {
 		o.reset();
 	} else {
 		BoostOptionalT v;
@@ -519,12 +486,8 @@ template <typename BoostOptionalT> void get_col_from_db(database_binder& db, int
 }
 #endif
 
-/* call the rvalue functions */
-template<typename T> database_binder&& operator <<(database_binder&& db, T const& val) { return std::move(db) << std::move(val); }
+//there is too much magic i have to cheat here sry
+template<typename T> void operator >> (database_binder::chain_type& db, T& val) { *db >> val; }
 
-/*special case for string literals*/
-template<std::size_t N> database_binder&& operator <<(database_binder&& db, const char(&STR)[N])
-	{ return std::move(db) << std::string(STR); }
-template<std::size_t N> database_binder&& operator <<(database_binder&& db, const char16_t(&STR)[N])
-	{ return std::move(db) << std::u16string(STR); }
 }
+
