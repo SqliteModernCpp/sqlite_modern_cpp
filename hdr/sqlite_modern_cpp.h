@@ -471,7 +471,7 @@ template <typename BoostOptionalT> database_binder::chain_type& operator <<(data
 		exceptions::throw_sqlite_error(hresult);
 	}
 
-	++db._inx;
+	++db->_inx;
 	return db;
 }
 
