@@ -132,8 +132,9 @@ public:
 
 private:
 	std::shared_ptr<sqlite3> _db;
-	std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> _stmt;
 	std::u16string _sql;
+	std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> _stmt;
+
 	int _inx;
 	
 	bool execution_started = false;
@@ -291,8 +292,7 @@ public:
 
 	template<typename T>
 	database_binder::chain_type operator<<(const T& sql) const {
-		database_binder::chain_type dbb = std::make_unique<database_binder>(_db, std::string(sql));//  std::make_shared<database_binder>(_db, sql);
-		return dbb;
+		return database_binder::chain_type(new database_binder(_db,std::string(sql)));
 	}
 
 	std::shared_ptr<sqlite3> get_sqlite3_connection() const { return _db; }
@@ -376,7 +376,7 @@ template<> inline database_binder::chain_type& operator <<(database_binder::chai
 	}
 
 	++db->_inx;
-	return std::move(db);
+	return db;
 }
 template<> inline void get_col_from_db(database_binder& db,int inx, sqlite3_int64& i) {
 	if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
@@ -394,7 +394,7 @@ template<> inline database_binder::chain_type& operator <<(database_binder::chai
 	}
 
 	++db->_inx;
-	return std::move(db);
+	return db;
 }
 template<> inline void get_col_from_db(database_binder& db, int inx, float& f) {
 	if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
@@ -412,7 +412,7 @@ template<> inline database_binder::chain_type& operator <<(database_binder::chai
 	}
 
 	++db->_inx;
-	return std::move(db);
+	return db;
 }
 template<> inline void get_col_from_db(database_binder& db, int inx, double& d) {
 	if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
@@ -438,7 +438,7 @@ template<> inline database_binder::chain_type& operator <<(database_binder::chai
 	}
 
 	++db->_inx;
-	return std::move(db);
+	return db;
 }
 // std::u16string
 template<> inline void get_col_from_db(database_binder& db, int inx, std::u16string & w) {
@@ -458,7 +458,7 @@ template<> inline database_binder::chain_type& operator <<(database_binder::chai
 	}
 
 	++db->_inx;
-	return std::move(db);
+	return db;
 }
 
 #ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
@@ -467,12 +467,12 @@ template <typename BoostOptionalT> database_binder::chain_type& operator <<(data
 		return operator << (std::move(db), std::move(*val));
 	}
 	int hresult;
-	if((hresult = sqlite3_bind_null(db->_stmt.get(), db._inx)) != SQLITE_OK) {
+	if((hresult = sqlite3_bind_null(db->_stmt.get(), db->_inx)) != SQLITE_OK) {
 		exceptions::throw_sqlite_error(hresult);
 	}
 
 	++db._inx;
-	return std::move(db);
+	return db;
 }
 
 template <typename BoostOptionalT> void get_col_from_db(database_binder::chain_type& db, int inx, boost::optional<BoostOptionalT>& o) {
