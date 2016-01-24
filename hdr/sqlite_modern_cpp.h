@@ -133,8 +133,8 @@ namespace sqlite {
 			}
 		}
 
-		void set_used(bool state) { execution_started = state; }
-		bool get_used() const { return execution_started; }
+		void used(bool state) { execution_started = state; }
+		bool used() const { return execution_started; }
 
 	private:
 		std::shared_ptr<sqlite3> _db;
@@ -228,7 +228,7 @@ namespace sqlite {
 
 		~database_binder() noexcept(false) {
 			/* Will be executed if no >>op is found, but not if an exception
-			is in mud flight */
+			is in mid flight */
 			if(!execution_started && !std::uncaught_exception()) {
 				execute();
 			}
@@ -279,16 +279,11 @@ namespace sqlite {
 		database(std::shared_ptr<sqlite3> db):
 			_db(db) {}
 
-		//template<typename T>
-		//database_binder::chain_type operator<<(const T& sql) const {
-		//	return database_binder::chain_type(new database_binder(_db,std::string(sql)));
-		//}
-
 		database_binder::chain_type operator<<(const char* sql) {
 			return database_binder::chain_type(new database_binder(_db, std::string(sql)));
 		}
 
-		connection_type get_sqlite3_connection() const { return _db; }
+		connection_type connection() const { return _db; }
 
 		sqlite3_int64 last_insert_rowid() const {
 			return sqlite3_last_insert_rowid(_db.get());
@@ -484,10 +479,11 @@ namespace sqlite {
 	}
 #endif
 
-	// there is too much magic here, val might be rValue or rValue
+	// there is too much magic here, val might be rValue or lValue
 	template<typename T> void operator >> (database_binder::chain_type& db, T&& val) { *db >> std::forward<T>(val); }
 	template<typename T> void operator >> (database_binder::chain_type&& db, T&& val) { db >> std::forward<T>(val); }
 
+	// Some ppl are lazy so we have a operator for proper prep. statemant handling.
 	void operator++(database_binder::chain_type& db, int) { db->execute(); db->reset(); }
 
 	// Convert the rValue binder to a reference and call first op<<, its needed for the call that creates the binder (be carfull of recursion here!)
