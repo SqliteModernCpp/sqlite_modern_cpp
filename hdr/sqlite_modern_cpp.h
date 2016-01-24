@@ -99,8 +99,7 @@ namespace sqlite {
 
 	template<std::size_t> class binder;
 
-	//template<typename T> database_binder&& operator <<(database_binder&& db,T const&& val);
-	//template<typename T> void get_col_from_db(database_binder& db, int inx, T& val);
+	typedef std::shared_ptr<sqlite3> connection_type;
 
 	template<typename Tuple, int Element = 0, bool Last = (std::tuple_size<Tuple>::value == Element)> struct tuple_iterate {
 		static void iterate(Tuple& t, database_binder& db) {
@@ -133,6 +132,9 @@ namespace sqlite {
 				exceptions::throw_sqlite_error(hresult);
 			}
 		}
+
+		void set_used(bool state) { execution_started = state; }
+		bool get_used() const { return execution_started; }
 
 	private:
 		std::shared_ptr<sqlite3> _db;
@@ -286,7 +288,7 @@ namespace sqlite {
 			return database_binder::chain_type(new database_binder(_db, std::string(sql)));
 		}
 
-		std::shared_ptr<sqlite3> get_sqlite3_connection() const { return _db; }
+		connection_type get_sqlite3_connection() const { return _db; }
 
 		sqlite3_int64 last_insert_rowid() const {
 			return sqlite3_last_insert_rowid(_db.get());

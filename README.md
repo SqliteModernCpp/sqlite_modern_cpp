@@ -77,6 +77,64 @@ int main() {
 }
 ```
 
+Prepared Statements
+=====
+It is possible to retain and reuse statments this will keep the query plan and in case of an complex query or many uses might increase the performance significantly.
+
+```c++
+
+		database db(":memory:");
+
+		// if you use << on a sqlite::database you get a prepared statment back
+		// this will not be executed till it gets destroyed or you execute it explicitly
+		auto ps = db << "select ?,? "; // get a prepared parsed and ready statment
+
+		// first if needed bind values to it
+		ps << 5;
+		int tmp = 8;
+		ps << tmp;
+
+		// now you can execute it, if the statment was executed once it will not be executed again when it goes out of scope.
+		// But beware that it will if it wasn't executed!
+		ps >> [&](int a,int b){ ... };
+
+		// after a successfull execution the statment needs to be reset to be execute again. This will reset the bound values too!
+		ps.reset();
+		
+		// If you dont need the returned values you can execute it like this
+		ps.execute(); // the statment will not be reset!
+
+		// there is a convinience operator to execute and reset in one go
+		ps++;
+
+		// To disable the execution of a statment when it goes out of scope and wasn't used
+		ps.set_used(true); // or false if you want it to execute even if it was used 
+
+		// Usage Example:
+
+		auto ps = db << "insert into complex_table_with_lots_of_indices values (?,?,?)";
+		int i = 0;
+		while( i < 100000 ){
+			ps << long_list[i++] << long_list[i++] << long_list[i++];
+			ps++;
+		}
+```
+
+Shared Connections
+=====
+If you need the handle to the database connection to execute sqlite3 commands directly you can get a managed shared_ptr to it, so it will not close as long as you have a referenc to it.
+
+```c++
+	sqlite::connection_type con;
+	
+	{ // scope of our db object
+		database db(":memory:"); // Make a connection and create in memory db
+		con = db.get_sqlite3_connection();
+	} // here the temporary db would be lost but we still have the connection for our direct API calls
+
+	database db2(con); // or we can even make a new database object from it
+```
+
 Transactions
 =====
 You can use transactions with `begin;`, `commit;` and `rollback;` commands.
