@@ -93,14 +93,14 @@ It is possible to retain and reuse statments this will keep the query plan and i
 		int tmp = 8;
 		ps << tmp;
 
-		// now you can execute it with `operator>>` or `execute()`. 
+		// now you can execute it with `operator>>` or `execute()`.
 		// If the statment was executed once it will not be executed again when it goes out of scope.
 		// But beware that it will execute on destruction if it wasn't executed!
 		ps >> [&](int a,int b){ ... };
 
 		// after a successfull execution the statment needs to be reset to be execute again. This will reset the bound values too!
 		ps.reset();
-		
+
 		// If you dont need the returned values you can execute it like this
 		ps.execute(); // the statment will not be reset!
 
@@ -108,7 +108,7 @@ It is possible to retain and reuse statments this will keep the query plan and i
 		ps++;
 
 		// To disable the execution of a statment when it goes out of scope and wasn't used
-		ps.used(true); // or false if you want it to execute even if it was used 
+		ps.used(true); // or false if you want it to execute even if it was used
 
 		// Usage Example:
 
@@ -131,9 +131,9 @@ Take this example on how to deal with a database backup using SQLITEs own functi
 
 		auto con = db.connection();		// get a handle to the DB we want to backup in our scope
 										// this way we are sure the DB is open and ok while we backup
-		
+
 		// Init Backup and make sure its freed on exit or exceptions!
-		auto state = 
+		auto state =
 			std::unique_ptr<sqlite3_backup,decltype(&sqlite3_backup_finish)>(
 			sqlite3_backup_init(backup.connection().get(), "main", con.get(), "main"),
 			sqlite3_backup_finish
@@ -166,7 +166,7 @@ You can use transactions with `begin;`, `commit;` and `rollback;` commands.
 			<< u"jack"
 			<< 68.5;
 		db << "commit;"; // commit all the changes.
-                
+
 		db << "begin;"; // begin another transaction ....
 		db << "insert into user (age,name,weight) values (?,?,?);" // utf16 string
 			<< 19
@@ -174,6 +174,24 @@ You can use transactions with `begin;`, `commit;` and `rollback;` commands.
 			<< 82.7;
 		db << "rollback;"; // cancel this transaction ...
 
+```
+
+Blob
+=====
+Use `std::vector<T>` to store and retrieve blob data.  
+`T` could be `char,short,int,long,long long, float or double`.
+
+```c++
+		db << "CREATE TABLE person (name TEXT, numbers BLOB);";
+		db << "INSERT INTO person VALUES (?, ?)" << "bob" << vector<int> { 1, 2, 3, 4};
+		db << "INSERT INTO person VALUES (?, ?)" << "sara" << vector<double> { 1.0, 2.0, 3.0, 4.0};
+
+		vector<int> numbers_bob;
+		db << "SELECT numbers from person where name = ?;" << "bob" >> numbers_bob;
+
+		db << "SELECT numbers from person where name = ?;" << "sara" >> [](vector<double> numbers_sara){
+		    for(auto e : numbers_sara) cout << e << ' '; cout << endl;
+		};
 ```
 
 Dealing with NULL values
@@ -184,45 +202,45 @@ If you have databases where some rows may be null, you can use boost::optional t
 
 	#define _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
 	#include <sqlite_modern_cpp.h>
-	
+
 	struct User {
 		long long _id;
 		boost::optional<int> age;
 		boost::optional<string> name;
 		boost::optional<real> weight;
 	};
-	
+
 	{
 		User user;
 		user.name = "bob";
-		
+
 		// Same database as above
 		database db("dbfile.db");
-		
+
 		// Here, age and weight will be inserted as NULL in the database.
 		db << "insert into user (age,name,weight) values (?,?,?);"
 			<< user.age
 			<< user.name
 			<< user.weight;
-			
+
 		user._id = db.last_insert_rowid();
 	}
-	
+
 	{
 		// Here, the User instance will retain the NULL value(s) from the database.
 		db << "select _id,age,name,weight from user where age > ? ;"
 			<< 18
 			>> [&](long long id,
-				boost::optional<int> age, 
+				boost::optional<int> age,
 				boost::optional<string> name
 				boost::optional<real> weight) {
-			
+
 			User user;
 			user._id = id;
 			user.age = age;
 			user.name = move(name);
 			user.weight = weight;
-			
+
 			cout << "id=" << user._id
 				<< " age = " << (user.age ? to_string(*user.age) ? string("NULL"))
 				<< " name = " << (user.name ? *user.name : string("NULL"))

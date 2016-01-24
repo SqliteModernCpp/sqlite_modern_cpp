@@ -46,7 +46,11 @@ int main()
 			cout << "Bad result on line " << __LINE__ << endl;
 			exit(EXIT_FAILURE);
 		}
-    //else { for(auto e : numbers_sara) cout << e << ' '; cout << endl; }
+		//else {
+			//db << "SELECT numbers from person where name = ?;" << "sara" >> [](vector<double> numbers_sara){
+			    //for(auto e : numbers_sara) cout << e << ' '; cout << endl;
+			//};
+		//}
 
 	}
 	catch(sqlite_exception e)
