@@ -52,11 +52,13 @@ int main() {
 		db << "select ?,?" << 1 << 1 >> test;
 		db << "select ?,?" << test << test >> test;
 
-		db << "select ?" << test >> [](int t) {}; 		// rVal		
-		db << "select ?,?" << test << 1 >> [](int t, int p) {};
-		db << "select ?,?" << 1 << test >> [](int t, int p) {};
-		db << "select ?,?" << 1 << 1 >> [](int t, int p) {};
-		db << "select ?,?" << test << test >> [](int t, int p) {};
+		int q = 0;
+
+		db << "select ?" << test >> [&](int t) { q = t++; }; 		// rVal		
+		db << "select ?,?" << test << 1 >> [&](int t, int p) { q = t + p; };
+		db << "select ?,?" << 1 << test >> [&](int t, int p) { q = t + p; };
+		db << "select ?,?" << 1 << 1 >> [&](int t, int p) { q = t + p; };
+		db << "select ?,?" << test << test >> [&](int t, int p) { q = t + p; };
 
 		db << "select ?,?,?" << test << 1 << test; // mix
 		db << "select ?,?,?" << 1 << test << 1;
