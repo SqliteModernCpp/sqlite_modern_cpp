@@ -6,6 +6,7 @@
 #include <ctime>
 #include <tuple>
 #include <memory>
+#include <vector>
 
 #ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
 #include <boost/optional.hpp>
@@ -188,17 +189,27 @@ namespace sqlite {
 		}
 
 		template <typename Type>
-		using is_sqlite_value = std::integral_constant<
+		struct is_sqlite_value : public std::integral_constant<
 			bool,
 			std::is_floating_point<Type>::value
 			|| std::is_integral<Type>::value
 			|| std::is_same<std::string, Type>::value
 			|| std::is_same<std::u16string, Type>::value
 			|| std::is_same<sqlite_int64, Type>::value
-		>;
+		> { };
+		template <typename Type>
+		struct is_sqlite_value< std::vector<Type> > : public std::integral_constant<
+			bool,
+			std::is_floating_point<Type>::value
+			|| std::is_integral<Type>::value
+			|| std::is_same<sqlite_int64, Type>::value
+    > { };
+
 
 		template<typename T> friend database_binder::chain_type& operator <<(database_binder::chain_type& db, const T& val);
 		template<typename T> friend void get_col_from_db(database_binder& db, int inx, T& val);
+		template<typename T> friend database_binder::chain_type& operator <<(database_binder::chain_type& db, const std::vector<T>& val);
+		template<typename T> friend void get_col_from_db(database_binder& db, int inx, std::vector<T>& val);
 		template<typename T> friend T operator++(database_binder& db, int);
 
 
@@ -407,6 +418,27 @@ namespace sqlite {
 			d = 0;
 		} else {
 			d = sqlite3_column_double(db._stmt.get(), inx);
+		}
+	}
+
+	// vector<T>
+	template<typename T> inline database_binder::chain_type& operator<<(database_binder::chain_type& db, const std::vector<T>& vec) {
+		void const* buf = reinterpret_cast<void const *>(vec.data());
+		int bytes = vec.size() * sizeof(T);
+		int hresult;
+		if((hresult = sqlite3_bind_blob(db->_stmt.get(), db->_inx, buf, bytes, SQLITE_TRANSIENT)) != SQLITE_OK) {
+			exceptions::throw_sqlite_error(hresult);
+		}
+		++db->_inx;
+		return db;
+	}
+	template<typename T> inline void get_col_from_db(database_binder& db, int inx, std::vector<T>& vec) {
+		if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
+			vec.clear();
+		} else {
+			int bytes = sqlite3_column_bytes(db._stmt.get(), inx);
+			T const* buf = reinterpret_cast<T const *>(sqlite3_column_blob(db._stmt.get(), inx));
+			vec = std::vector<T>(buf, buf + bytes/sizeof(T));
 		}
 	}
 
