@@ -77,6 +77,79 @@ int main() {
 }
 ```
 
+Prepared Statements
+=====
+It is possible to retain and reuse statments this will keep the query plan and in case of an complex query or many uses might increase the performance significantly.
+
+```c++
+		database db(":memory:");
+
+		// if you use << on a sqlite::database you get a prepared statment back
+		// this will not be executed till it gets destroyed or you execute it explicitly
+		auto ps = db << "select a,b from table where something = ? and anotherthing = ?"; // get a prepared parsed and ready statment
+
+		// first if needed bind values to it
+		ps << 5;
+		int tmp = 8;
+		ps << tmp;
+
+		// now you can execute it with `operator>>` or `execute()`. 
+		// If the statment was executed once it will not be executed again when it goes out of scope.
+		// But beware that it will execute on destruction if it wasn't executed!
+		ps >> [&](int a,int b){ ... };
+
+		// after a successfull execution the statment needs to be reset to be execute again. This will reset the bound values too!
+		ps.reset();
+		
+		// If you dont need the returned values you can execute it like this
+		ps.execute(); // the statment will not be reset!
+
+		// there is a convinience operator to execute and reset in one go
+		ps++;
+
+		// To disable the execution of a statment when it goes out of scope and wasn't used
+		ps.used(true); // or false if you want it to execute even if it was used 
+
+		// Usage Example:
+
+		auto ps = db << "insert into complex_table_with_lots_of_indices values (?,?,?)";
+		int i = 0;
+		while( i < 100000 ){
+			ps << long_list[i++] << long_list[i++] << long_list[i++];
+			ps++;
+		}
+```
+
+Shared Connections
+=====
+If you need the handle to the database connection to execute sqlite3 commands directly you can get a managed shared_ptr to it, so it will not close as long as you have a referenc to it.
+
+Take this example on how to deal with a database backup using SQLITEs own functions in a save and modern way.
+```c++
+	try {
+		database backup("backup");		//Open the database file we want to backup to
+
+		auto con = db.connection();		// get a handle to the DB we want to backup in our scope
+										// this way we are sure the DB is open and ok while we backup
+		
+		// Init Backup and make sure its freed on exit or exceptions!
+		auto state = 
+			std::unique_ptr<sqlite3_backup,decltype(&sqlite3_backup_finish)>(
+			sqlite3_backup_init(backup.connection().get(), "main", con.get(), "main"),
+			sqlite3_backup_finish
+			);
+
+		if(state) {
+			int rc;
+			// Each iteration of this loop copies 500 database pages from database db to the backup database.
+			do {
+				rc = sqlite3_backup_step(state.get(), 500);
+				std::cout << "Remaining " << sqlite3_backup_remaining(state.get()) << "/" << sqlite3_backup_pagecount(state.get()) << "\n";
+			} while(rc == SQLITE_OK || rc == SQLITE_BUSY || rc == SQLITE_LOCKED);
+		}
+	} // Release allocated resources.
+```
+
 Transactions
 =====
 You can use transactions with `begin;`, `commit;` and `rollback;` commands.
