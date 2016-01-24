@@ -144,7 +144,7 @@ Take this example on how to deal with a database backup using SQLITEs own functi
 			// Each iteration of this loop copies 500 database pages from database db to the backup database.
 			do {
 				rc = sqlite3_backup_step(state.get(), 500);
-				std::cout << "Remaining " << sqlite3_backup_remaining(pBackup) << "/" << sqlite3_backup_pagecount(pBackup) << "\n";
+				std::cout << "Remaining " << sqlite3_backup_remaining(state.get()) << "/" << sqlite3_backup_pagecount(state.get()) << "\n";
 			} while(rc == SQLITE_OK || rc == SQLITE_BUSY || rc == SQLITE_LOCKED);
 		}
 	} // Release allocated resources.

@@ -30,7 +30,7 @@ int main() {
 
 		{
 
-			auto con = db.get_sqlite3_connection();
+			auto con = db.connection();
 
 			{
 				database db2(con);
