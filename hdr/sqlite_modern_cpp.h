@@ -279,8 +279,12 @@ namespace sqlite {
 		database(std::shared_ptr<sqlite3> db):
 			_db(db) {}
 
+		database_binder::chain_type operator<<(const std::string& sql) {
+			return database_binder::chain_type(new database_binder(_db, sql));
+		}
+
 		database_binder::chain_type operator<<(const char* sql) {
-			return database_binder::chain_type(new database_binder(_db, std::string(sql)));
+			return *this << std::string(sql);
 		}
 
 		connection_type connection() const { return _db; }

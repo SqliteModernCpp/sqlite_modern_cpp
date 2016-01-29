@@ -44,6 +44,11 @@ int main()
 			exit(EXIT_FAILURE);
 		}
 
+		std::string sql("select 1+1");
+		int test = 0;
+		db << sql >> test;
+		
+		if(test != 2) exit(EXIT_FAILURE);
 		
 	}
 	catch(sqlite_exception e)
