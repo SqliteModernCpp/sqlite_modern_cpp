@@ -122,6 +122,7 @@ namespace sqlite {
 			sqlite3_reset(_stmt.get());
 			sqlite3_clear_bindings(_stmt.get());
 			_inx = 1;
+			used(false);
 		}
 
 		void execute() {
@@ -132,6 +133,7 @@ namespace sqlite {
 			if(hresult != SQLITE_DONE) {
 				exceptions::throw_sqlite_error(hresult);
 			}
+			used(true); /* prevent from executing again when goes out of scope */
 		}
 
 		void used(bool state) { execution_started = state; }
