@@ -393,6 +393,23 @@ namespace sqlite {
 		}
 	}
 
+	template<> inline database_binder::chain_type& operator <<(database_binder::chain_type& db, const sqlite_uint64&  val) {
+		int hresult;
+		if((hresult = sqlite3_bind_int64(db->_stmt.get(), db->_inx, val)) != SQLITE_OK) {
+			exceptions::throw_sqlite_error(hresult);
+		}
+
+		++db->_inx;
+		return db;
+	}
+	template<> inline void get_col_from_db(database_binder& db, int inx, sqlite3_uint64& i) {
+		if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
+			i = 0;
+		} else {
+			i = sqlite3_column_int64(db._stmt.get(), inx);
+		}
+	}
+
 	// float
 	template<> inline database_binder::chain_type& operator <<(database_binder::chain_type& db, const float& val) {
 		int hresult;
