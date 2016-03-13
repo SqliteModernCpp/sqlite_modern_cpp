@@ -1,6 +1,8 @@
 #include <iostream>
 #include <cstdlib>
 #include <unistd.h>
+#include <stdint.h>
+#include <limits>
 #include <sqlite_modern_cpp.h>
 using namespace  sqlite;
 using namespace std;
