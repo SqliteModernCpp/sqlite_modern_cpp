@@ -197,14 +197,16 @@ namespace sqlite {
 			|| std::is_integral<Type>::value
 			|| std::is_same<std::string, Type>::value
 			|| std::is_same<std::u16string, Type>::value
-			|| std::is_same<sqlite_int64, Type>::value
+			|| std::is_same<sqlite3_int64, Type>::value
+			|| std::is_same<sqlite3_uint64, Type>::value
 		> { };
 		template <typename Type>
 		struct is_sqlite_value< std::vector<Type> > : public std::integral_constant<
 			bool,
 			std::is_floating_point<Type>::value
 			|| std::is_integral<Type>::value
-			|| std::is_same<sqlite_int64, Type>::value
+			|| std::is_same<sqlite3_int64, Type>::value
+			|| std::is_same<sqlite3_uint64, Type>::value
     > { };
 
 
@@ -375,8 +377,8 @@ namespace sqlite {
 		}
 	}
 
-	// sqlite_int64
-	template<> inline database_binder::chain_type& operator <<(database_binder::chain_type& db, const sqlite_int64&  val) {
+	// sqlite3_int64
+	template<> inline database_binder::chain_type& operator <<(database_binder::chain_type& db, const sqlite3_int64&  val) {
 		int hresult;
 		if((hresult = sqlite3_bind_int64(db->_stmt.get(), db->_inx, val)) != SQLITE_OK) {
 			exceptions::throw_sqlite_error(hresult);
@@ -386,6 +388,24 @@ namespace sqlite {
 		return db;
 	}
 	template<> inline void get_col_from_db(database_binder& db, int inx, sqlite3_int64& i) {
+		if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
+			i = 0;
+		} else {
+			i = sqlite3_column_int64(db._stmt.get(), inx);
+		}
+	}
+
+	// sqlite3_uint64
+	template<> inline database_binder::chain_type& operator <<(database_binder::chain_type& db, const sqlite3_uint64&  val) {
+		int hresult;
+		if((hresult = sqlite3_bind_int64(db->_stmt.get(), db->_inx, val)) != SQLITE_OK) {
+			exceptions::throw_sqlite_error(hresult);
+		}
+
+		++db->_inx;
+		return db;
+	}
+	template<> inline void get_col_from_db(database_binder& db, int inx, sqlite3_uint64& i) {
 		if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
 			i = 0;
 		} else {
