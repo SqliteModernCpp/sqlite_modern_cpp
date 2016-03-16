@@ -464,7 +464,7 @@ namespace sqlite {
 	template<std::size_t N> inline database_binder::chain_type& operator <<(database_binder::chain_type& db, const char(&STR)[N]) { return db << std::string(STR); }
 	template<std::size_t N> inline database_binder::chain_type& operator <<(database_binder::chain_type& db, const char16_t(&STR)[N]) { return db << std::u16string(STR); }
 
-	template<> database_binder::chain_type& operator <<(database_binder::chain_type& db, const std::string& txt) {
+	template<> inline database_binder::chain_type& operator <<(database_binder::chain_type& db, const std::string& txt) {
 		int hresult;
 		if((hresult = sqlite3_bind_text(db->_stmt.get(), db->_inx, txt.data(), -1, SQLITE_TRANSIENT)) != SQLITE_OK) {
 			exceptions::throw_sqlite_error(hresult);
@@ -474,7 +474,7 @@ namespace sqlite {
 		return db;
 	}
 	// std::u16string
-	template<> void get_col_from_db(database_binder& db, int inx, std::u16string & w) {
+	template<> inline void get_col_from_db(database_binder& db, int inx, std::u16string & w) {
 		if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
 			w = std::u16string();
 		} else {
@@ -495,7 +495,7 @@ namespace sqlite {
 	}
 	// boost::optinal support for NULL values
 #ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
-	template <typename BoostOptionalT> database_binder::chain_type& operator <<(database_binder::chain_type& db, const boost::optional<BoostOptionalT>& val) {
+	template <typename BoostOptionalT> inline database_binder::chain_type& operator <<(database_binder::chain_type& db, const boost::optional<BoostOptionalT>& val) {
 		if(val) {
 			return operator << (std::move(db), std::move(*val));
 		}
@@ -508,7 +508,7 @@ namespace sqlite {
 		return db;
 	}
 
-	template <typename BoostOptionalT> void get_col_from_db(database_binder& db, int inx, boost::optional<BoostOptionalT>& o) {
+	template <typename BoostOptionalT> inline void get_col_from_db(database_binder& db, int inx, boost::optional<BoostOptionalT>& o) {
 		if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
 			o.reset();
 		} else {
@@ -524,7 +524,7 @@ namespace sqlite {
 	template<typename T> void operator >> (database_binder::chain_type&& db, T&& val) { db >> std::forward<T>(val); }
 
 	// Some ppl are lazy so we have a operator for proper prep. statemant handling.
-	void operator++(database_binder::chain_type& db, int) { db->execute(); db->reset(); }
+	void inline operator++(database_binder::chain_type& db, int) { db->execute(); db->reset(); }
 
 	// Convert the rValue binder to a reference and call first op<<, its needed for the call that creates the binder (be carfull of recursion here!)
 	template<typename T> database_binder::chain_type& operator << (database_binder::chain_type&& db, const T& val) { return db << val; }
