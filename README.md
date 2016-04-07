@@ -94,21 +94,21 @@ It is possible to retain and reuse statments this will keep the query plan and i
 		ps << tmp;
 
 		// now you can execute it with `operator>>` or `execute()`.
-		// If the statment was executed once it will not be executed again when it goes out of scope.
+		// If the statement was executed once it will not be executed again when it goes out of scope.
 		// But beware that it will execute on destruction if it wasn't executed!
 		ps >> [&](int a,int b){ ... };
 
 		// after a successfull execution the statment needs to be reset to be execute again. This will reset the bound values too!
-		ps.reset();
+		ps->reset();
 
 		// If you dont need the returned values you can execute it like this
-		ps.execute(); // the statment will not be reset!
+		ps->execute(); // the statment will not be reset!
 
 		// there is a convinience operator to execute and reset in one go
 		ps++;
 
 		// To disable the execution of a statment when it goes out of scope and wasn't used
-		ps.used(true); // or false if you want it to execute even if it was used
+		ps->used(true); // or false if you want it to execute even if it was used
 
 		// Usage Example:
 
