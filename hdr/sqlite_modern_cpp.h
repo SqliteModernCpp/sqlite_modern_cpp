@@ -302,6 +302,14 @@ namespace sqlite {
 			return *this << std::string(sql);
 		}
 
+		database_binder::chain_type operator<<(const std::u16string& sql) {
+			return database_binder::chain_type(new database_binder(_db, sql));
+		}
+
+		database_binder::chain_type operator<<(const char16_t* sql) {
+			return *this << std::u16string(sql);
+		}
+
 		connection_type connection() const { return _db; }
 
 		sqlite3_int64 last_insert_rowid() const {
