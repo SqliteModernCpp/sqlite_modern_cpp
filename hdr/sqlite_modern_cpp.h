@@ -210,8 +210,13 @@ namespace sqlite {
 
 		template<typename T> friend database_binder::chain_type& operator <<(database_binder::chain_type& db, const T& val);
 		template<typename T> friend void get_col_from_db(database_binder& db, int inx, T& val);
+		/* for vector<T> support */
 		template<typename T> friend database_binder::chain_type& operator <<(database_binder::chain_type& db, const std::vector<T>& val);
 		template<typename T> friend void get_col_from_db(database_binder& db, int inx, std::vector<T>& val);
+		/* for nullptr & unique_ptr support */
+		friend database_binder::chain_type& operator <<(database_binder::chain_type& db, std::nullptr_t);
+		template<typename T> friend database_binder::chain_type& operator <<(database_binder::chain_type& db, const std::unique_ptr<T>& val);
+		template<typename T> friend void get_col_from_db(database_binder& db, int inx, std::unique_ptr<T>& val);
 		template<typename T> friend T operator++(database_binder& db, int);
 
 
@@ -455,6 +460,35 @@ namespace sqlite {
 			int bytes = sqlite3_column_bytes(db._stmt.get(), inx);
 			T const* buf = reinterpret_cast<T const *>(sqlite3_column_blob(db._stmt.get(), inx));
 			vec = std::vector<T>(buf, buf + bytes/sizeof(T));
+		}
+	}
+
+	/* for nullptr support */
+	inline database_binder::chain_type& operator <<(database_binder::chain_type& db, std::nullptr_t) {
+		int hresult;
+		if((hresult = sqlite3_bind_null(db->_stmt.get(), db->_inx)) != SQLITE_OK) {
+			exceptions::throw_sqlite_error(hresult);
+		}
+		++db->_inx;
+		return db;
+	}
+	/* for nullptr support */
+	template<typename T> inline database_binder::chain_type& operator <<(database_binder::chain_type& db, const std::unique_ptr<T>& val) {
+		if(val)
+			db << *val;
+		else
+		  db << nullptr;
+		return db;
+	}
+
+	/* for unique_ptr<T> support */
+	template<typename T> inline void get_col_from_db(database_binder& db, int inx, std::unique_ptr<T>& _ptr_) {
+		if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
+			_ptr_ = nullptr;
+		} else {
+			auto underling_ptr = new T();
+			get_col_from_db(db, inx, *underling_ptr);
+			_ptr_.reset(underling_ptr);
 		}
 	}
 

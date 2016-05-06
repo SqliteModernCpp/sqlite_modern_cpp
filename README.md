@@ -194,12 +194,43 @@ Use `std::vector<T>` to store and retrieve blob data.
 		};
 ```
 
-Dealing with NULL values
+NULL values
 =====
-If you have databases where some rows may be null, you can use boost::optional to retain the NULL value between C++ variables and the database. Note that you must enable the boost support by defining _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT befor importing the header.
+If you have databases where some rows may be null, you can use `std::unique_ptr<T>` to retain the NULL values between C++ variables and the database.
 
 ```c++
+db << "CREATE TABLE tbl (id integer,age integer, name string, img blob);";
+db << "INSERT INTO tbl VALUES (?, ?, ?, ?);" << 1 << 24 << "bob" << vector<int> { 1, 2 , 3};
+unique_ptr<string> ptr_null; // you can even bind empty unique_ptr<T>
+db << "INSERT INTO tbl VALUES (?, ?, ?, ?);" << 2 << nullptr << ptr_null << nullptr;
 
+db << "select age,name,img from tbl where id = 1"
+		>> [](unique_ptr<int> age_p, unique_ptr<string> name_p, unique_ptr<vector<int>> img_p) {
+			if(age_p == nullptr || name_p == nullptr || img_p == nullptr) {
+				cerr << "ERROR: values should not be null" << std::endl;
+			}
+
+			cout << "age:" << *age_p << " name:" << *name_p << " img:";
+			for(auto i : *img_p) cout << i << ","; cout << endl;
+		};
+
+db << "select age,name,img from tbl where id = 2"
+		>> [](unique_ptr<int> age_p, unique_ptr<string> name_p, unique_ptr<vector<int>> img_p) {
+			if(age_p != nullptr || name_p != nullptr || img_p != nullptr) {
+				cerr << "ERROR: values should be nullptr" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+			cout << "OK all three values are nullptr" << endl;
+		};
+```
+
+NULL values (DEPRICATED)
+=====
+**Note: this option is deprecated and will be removed in future versions.**
+You can enable boost support by defining _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT before importing sqlite_modern_cpp header.
+
+```c++
 	#define _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
 	#include <sqlite_modern_cpp.h>
 
