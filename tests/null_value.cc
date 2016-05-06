@@ -12,10 +12,12 @@ int main() {
 		db << "INSERT INTO tbl VALUES (?, ?);" << 2 << null_value();
 
 		db << "select id,name from tbl where id = 1" >> [](int id, null_value name_null) {
+			cout << "Name should not be null for ID:" << id;
 			if(name_null) exit(EXIT_FAILURE);
 		};
 
 		db << "select id,name from tbl where id = 2" >> [](int id, null_value name_null) {
+			cout << "Name should be null for ID:" << id;
 			if(!name_null) exit(EXIT_FAILURE);
 		};
 
