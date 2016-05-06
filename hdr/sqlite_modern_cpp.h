@@ -215,6 +215,7 @@ namespace sqlite {
 		template<typename T> friend void get_col_from_db(database_binder& db, int inx, std::vector<T>& val);
 		/* for nullptr & unique_ptr support */
 		friend database_binder::chain_type& operator <<(database_binder::chain_type& db, std::nullptr_t);
+		template<typename T> friend database_binder::chain_type& operator <<(database_binder::chain_type& db, const std::unique_ptr<T>& val);
 		template<typename T> friend void get_col_from_db(database_binder& db, int inx, std::unique_ptr<T>& val);
 		template<typename T> friend T operator++(database_binder& db, int);
 
@@ -469,6 +470,14 @@ namespace sqlite {
 			exceptions::throw_sqlite_error(hresult);
 		}
 		++db->_inx;
+		return db;
+	}
+	/* for nullptr support */
+	template<typename T> inline database_binder::chain_type& operator <<(database_binder::chain_type& db, const std::unique_ptr<T>& val) {
+		if(val)
+			db << *val;
+		else
+		  db << nullptr;
 		return db;
 	}
 
