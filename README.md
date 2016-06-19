@@ -99,16 +99,16 @@ It is possible to retain and reuse statments this will keep the query plan and i
 		ps >> [&](int a,int b){ ... };
 
 		// after a successfull execution the statment needs to be reset to be execute again. This will reset the bound values too!
-		ps->reset();
+		ps.reset();
 
 		// If you dont need the returned values you can execute it like this
-		ps->execute(); // the statment will not be reset!
+		ps.execute(); // the statment will not be reset!
 
 		// there is a convinience operator to execute and reset in one go
 		ps++;
 
 		// To disable the execution of a statment when it goes out of scope and wasn't used
-		ps->used(true); // or false if you want it to execute even if it was used
+		ps.used(true); // or false if you want it to execute even if it was used
 
 		// Usage Example:
 
@@ -153,7 +153,6 @@ Take this example on how to deal with a database backup using SQLITEs own functi
 Transactions
 =====
 You can use transactions with `begin;`, `commit;` and `rollback;` commands.
-*(don't forget to put all the semicolons at the end of each query)*.
 
 ```c++
 		db << "begin;"; // begin a transaction ...   
@@ -286,7 +285,28 @@ Errors
 
 On error, the library throws an error class indicating the type of error. The error classes are derived from the SQLITE3 error names, so if the error code is SQLITE_CONSTRAINT, the error class thrown is sqlite::exceptions::constraint. Note that all errors are derived from sqlite::sqlite_exception and that itself is derived from std::runtime_exception.
 
-*node: for NDK use the full path to your database file : `sqlite::database db("/data/data/com.your.package/dbfile.db")`*.
+```c++
+	database db(":memory:");
+	db << "create table person (id integer primary key not null, name text);";
+
+	try {
+		db << "insert into person (id, name) values (?,?)" << 1 << "jack";
+		// inserting again to produce error
+		db << "insert into person (id, name) values (?,?)" << 1 << "jack";
+	}
+	/* if you are trying to catch all sqlite related exceptions
+	 * make sure to catch them by reference */
+	catch (sqlite_exception& e) {
+		cerr << e.what() << endl;
+	}
+	/* you can catch specific exceptions as well,
+	   catch(sqlite::exceptions::constraint e) {  } */
+```
+
+NDK support
+======
+Just Make sure you are using the full path of your database file :
+`sqlite::database db("/data/data/com.your.package/dbfile.db")`.
 
 Building and Installing
 =====
