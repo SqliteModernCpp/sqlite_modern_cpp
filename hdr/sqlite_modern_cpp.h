@@ -223,19 +223,19 @@ namespace sqlite {
 		template<typename T> friend database_binder& operator <<(database_binder& db, const std::unique_ptr<T>& val);
 		template<typename T> friend void get_col_from_db(database_binder& db, int inx, std::unique_ptr<T>& val);
 		template<typename T> friend T operator++(database_binder& db, int);
-        // for nontemplate functions
-        friend database_binder& operator<<(database_binder& db, const int& val);
-        friend void get_col_from_db(database_binder& db, int inx, int& val);
-        friend database_binder& operator <<(database_binder& db, const sqlite_int64&  val);
-        friend void get_col_from_db(database_binder& db, int inx, sqlite3_int64& i);
-        friend database_binder& operator <<(database_binder& db, const float& val);
-        friend void get_col_from_db(database_binder& db, int inx, float& f);
-        friend database_binder& operator <<(database_binder& db, const double& val);
-        friend void get_col_from_db(database_binder& db, int inx, double& d);
-        friend void get_col_from_db(database_binder& db, int inx, std::string & s);
-        friend database_binder& operator <<(database_binder& db, const std::string& txt);
-        friend void get_col_from_db(database_binder& db, int inx, std::u16string & w);
-        friend database_binder& operator <<(database_binder& db, const std::u16string& txt);
+		// Overload instead of specializing function templates (http://www.gotw.ca/publications/mill17.htm)
+		friend database_binder& operator<<(database_binder& db, const int& val);
+		friend void get_col_from_db(database_binder& db, int inx, int& val);
+		friend database_binder& operator <<(database_binder& db, const sqlite_int64&  val);
+		friend void get_col_from_db(database_binder& db, int inx, sqlite3_int64& i);
+		friend database_binder& operator <<(database_binder& db, const float& val);
+		friend void get_col_from_db(database_binder& db, int inx, float& f);
+		friend database_binder& operator <<(database_binder& db, const double& val);
+		friend void get_col_from_db(database_binder& db, int inx, double& d);
+		friend void get_col_from_db(database_binder& db, int inx, std::string & s);
+		friend database_binder& operator <<(database_binder& db, const std::string& txt);
+		friend void get_col_from_db(database_binder& db, int inx, std::u16string & w);
+		friend database_binder& operator <<(database_binder& db, const std::u16string& txt);
 
 
 #ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
@@ -363,6 +363,7 @@ namespace sqlite {
 				Values&&...      values
 				) {
 			nth_argument_type<Function, sizeof...(Values)> value{};
+			get_col_from_db(db, sizeof...(Values), value);
 
 			run<Function>(db, function, std::forward<Values>(values)..., std::move(value));
 		}
