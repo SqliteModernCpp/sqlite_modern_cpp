@@ -30,7 +30,7 @@ int main() {
 			<< u"bob"
 			<< 83.25;
 
-		int age = 21;
+		int age = 22;
 		float weight = 68.5;
 		string name = "jack";
 		db << u"insert into user (age,name,weight) values (?,?,?);" // utf16 query string
@@ -43,9 +43,11 @@ int main() {
 		// slects from user table on a condition ( age > 18 ) and executes
 		// the lambda for each row returned .
 		db << "select age,name,weight from user where age > ? ;"
-			<< 18
-			>> [&](int age, string name, double weight) {
-			cout << age << ' ' << name << ' ' << weight << endl;
+			<< 21
+			>> [&](int _age, string _name, double _weight) {
+				if(_age != age || _name != name) 
+					exit(EXIT_FAILURE);
+				cout << _age << ' ' << _name << ' ' << _weight << endl;
 		};
 
 		// selects the count(*) from user table

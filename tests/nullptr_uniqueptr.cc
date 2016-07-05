@@ -21,7 +21,9 @@ int main() {
       }
 
       cout << "age:" << *age_p << " name:" << *name_p << " img:";
-      for(auto i : *img_p) cout << i << ","; cout << endl;
+      for(auto i : *img_p)
+        cout << i << ",";
+      cout << endl;
     };
 
     db << "select age,name,img from tbl where id = 2" >> [](unique_ptr<int> age_p, unique_ptr<string> name_p, unique_ptr<vector<int>> img_p) {
