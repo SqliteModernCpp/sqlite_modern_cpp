@@ -223,6 +223,19 @@ namespace sqlite {
 		template<typename T> friend database_binder& operator <<(database_binder& db, const std::unique_ptr<T>& val);
 		template<typename T> friend void get_col_from_db(database_binder& db, int inx, std::unique_ptr<T>& val);
 		template<typename T> friend T operator++(database_binder& db, int);
+        // for nontemplate functions
+        friend database_binder& operator<<(database_binder& db, const int& val);
+        friend void get_col_from_db(database_binder& db, int inx, int& val);
+        friend database_binder& operator <<(database_binder& db, const sqlite_int64&  val);
+        friend void get_col_from_db(database_binder& db, int inx, sqlite3_int64& i);
+        friend database_binder& operator <<(database_binder& db, const float& val);
+        friend void get_col_from_db(database_binder& db, int inx, float& f);
+        friend database_binder& operator <<(database_binder& db, const double& val);
+        friend void get_col_from_db(database_binder& db, int inx, double& d);
+        friend void get_col_from_db(database_binder& db, int inx, std::string & s);
+        friend database_binder& operator <<(database_binder& db, const std::string& txt);
+        friend void get_col_from_db(database_binder& db, int inx, std::u16string & w);
+        friend database_binder& operator <<(database_binder& db, const std::u16string& txt);
 
 
 #ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
@@ -350,7 +363,6 @@ namespace sqlite {
 				Values&&...      values
 				) {
 			nth_argument_type<Function, sizeof...(Values)> value{};
-			get_col_from_db(db, sizeof...(Values), value);
 
 			run<Function>(db, function, std::forward<Values>(values)..., std::move(value));
 		}
@@ -370,7 +382,7 @@ namespace sqlite {
 	};
 
 	// int
-	template<> inline database_binder& operator<<(database_binder& db, const int& val) {
+	 inline database_binder& operator<<(database_binder& db, const int& val) {
 		int hresult;
 		if((hresult = sqlite3_bind_int(db._stmt.get(), db._inx, val)) != SQLITE_OK) {
 			exceptions::throw_sqlite_error(hresult);
@@ -378,7 +390,7 @@ namespace sqlite {
 		++db._inx;
 		return db;
 	}
-	template<> inline void get_col_from_db(database_binder& db, int inx, int& val) {
+	 inline void get_col_from_db(database_binder& db, int inx, int& val) {
 		if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
 			val = 0;
 		} else {
@@ -387,7 +399,7 @@ namespace sqlite {
 	}
 
 	// sqlite_int64
-	template<> inline database_binder& operator <<(database_binder& db, const sqlite_int64&  val) {
+	 inline database_binder& operator <<(database_binder& db, const sqlite_int64&  val) {
 		int hresult;
 		if((hresult = sqlite3_bind_int64(db._stmt.get(), db._inx, val)) != SQLITE_OK) {
 			exceptions::throw_sqlite_error(hresult);
@@ -396,7 +408,7 @@ namespace sqlite {
 		++db._inx;
 		return db;
 	}
-	template<> inline void get_col_from_db(database_binder& db, int inx, sqlite3_int64& i) {
+	 inline void get_col_from_db(database_binder& db, int inx, sqlite3_int64& i) {
 		if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
 			i = 0;
 		} else {
@@ -405,7 +417,7 @@ namespace sqlite {
 	}
 
 	// float
-	template<> inline database_binder& operator <<(database_binder& db, const float& val) {
+	 inline database_binder& operator <<(database_binder& db, const float& val) {
 		int hresult;
 		if((hresult = sqlite3_bind_double(db._stmt.get(), db._inx, double(val))) != SQLITE_OK) {
 			exceptions::throw_sqlite_error(hresult);
@@ -414,7 +426,7 @@ namespace sqlite {
 		++db._inx;
 		return db;
 	}
-	template<> inline void get_col_from_db(database_binder& db, int inx, float& f) {
+	 inline void get_col_from_db(database_binder& db, int inx, float& f) {
 		if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
 			f = 0;
 		} else {
@@ -423,7 +435,7 @@ namespace sqlite {
 	}
 
 	// double
-	template<> inline database_binder& operator <<(database_binder& db, const double& val) {
+	 inline database_binder& operator <<(database_binder& db, const double& val) {
 		int hresult;
 		if((hresult = sqlite3_bind_double(db._stmt.get(), db._inx, val)) != SQLITE_OK) {
 			exceptions::throw_sqlite_error(hresult);
@@ -432,7 +444,7 @@ namespace sqlite {
 		++db._inx;
 		return db;
 	}
-	template<> inline void get_col_from_db(database_binder& db, int inx, double& d) {
+	 inline void get_col_from_db(database_binder& db, int inx, double& d) {
 		if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
 			d = 0;
 		} else {
@@ -491,7 +503,7 @@ namespace sqlite {
 	}
 
 	// std::string
-	template<> inline void get_col_from_db(database_binder& db, int inx, std::string & s) {
+	 inline void get_col_from_db(database_binder& db, int inx, std::string & s) {
 		if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
 			s = std::string();
 		} else {
@@ -504,7 +516,7 @@ namespace sqlite {
 	template<std::size_t N> inline database_binder& operator <<(database_binder& db, const char(&STR)[N]) { return db << std::string(STR); }
 	template<std::size_t N> inline database_binder& operator <<(database_binder& db, const char16_t(&STR)[N]) { return db << std::u16string(STR); }
 
-	template<> inline database_binder& operator <<(database_binder& db, const std::string& txt) {
+	 inline database_binder& operator <<(database_binder& db, const std::string& txt) {
 		int hresult;
 		if((hresult = sqlite3_bind_text(db._stmt.get(), db._inx, txt.data(), -1, SQLITE_TRANSIENT)) != SQLITE_OK) {
 			exceptions::throw_sqlite_error(hresult);
@@ -514,7 +526,7 @@ namespace sqlite {
 		return db;
 	}
 	// std::u16string
-	template<> inline void get_col_from_db(database_binder& db, int inx, std::u16string & w) {
+	 inline void get_col_from_db(database_binder& db, int inx, std::u16string & w) {
 		if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
 			w = std::u16string();
 		} else {
@@ -524,7 +536,7 @@ namespace sqlite {
 	}
 
 
-	template<> inline database_binder& operator <<(database_binder& db, const std::u16string& txt) {
+	 inline database_binder& operator <<(database_binder& db, const std::u16string& txt) {
 		int hresult;
 		if((hresult = sqlite3_bind_text16(db._stmt.get(), db._inx, txt.data(), -1, SQLITE_TRANSIENT)) != SQLITE_OK) {
 			exceptions::throw_sqlite_error(hresult);
