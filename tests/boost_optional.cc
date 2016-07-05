@@ -16,8 +16,7 @@ void insert(database& db, bool is_null) {
 }
 
 void select(database& db, bool should_be_null) {
-	db << "select id,val from test" >> [&](long long id, boost::optional<int> val) {
-		id = id;
+	db << "select id,val from test" >> [&](long long, boost::optional<int> val) {
 		if(should_be_null) {
 			if(val) exit(EXIT_FAILURE);
 		} else {
