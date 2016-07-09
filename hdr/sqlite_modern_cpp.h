@@ -224,6 +224,8 @@ namespace sqlite {
 		template<typename T> friend void get_col_from_db(database_binder& db, int inx, std::unique_ptr<T>& val);
 		template<typename T> friend T operator++(database_binder& db, int);
         // for nontemplate functions
+        friend database_binder& operator<<(database_binder& db, const bool& val);
+        friend void get_col_from_db(database_binder& db, int inx, bool& val);
         friend database_binder& operator<<(database_binder& db, const int& val);
         friend void get_col_from_db(database_binder& db, int inx, int& val);
         friend database_binder& operator <<(database_binder& db, const sqlite_int64&  val);
@@ -381,6 +383,23 @@ namespace sqlite {
 			function(std::move(values)...);
 		}
 	};
+
+	// bool
+	 inline database_binder& operator<<(database_binder& db, const bool& val) {
+		int hresult;
+		if((hresult = sqlite3_bind_int(db._stmt.get(), db._inx, val)) != SQLITE_OK) {
+			exceptions::throw_sqlite_error(hresult);
+		}
+		++db._inx;
+		return db;
+	}
+	 inline void get_col_from_db(database_binder& db, int inx, bool& val) {
+		if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
+			val = false;
+		} else {
+			val = sqlite3_column_int(db._stmt.get(), inx);
+		}
+	}
 
 	// int
 	 inline database_binder& operator<<(database_binder& db, const int& val) {
