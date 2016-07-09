@@ -363,6 +363,7 @@ namespace sqlite {
 				Values&&...      values
 				) {
 			nth_argument_type<Function, sizeof...(Values)> value{};
+            get_col_from_db(db, sizeof...(Values), value);
 
 			run<Function>(db, function, std::forward<Values>(values)..., std::move(value));
 		}
