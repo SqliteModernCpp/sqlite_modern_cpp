@@ -322,7 +322,7 @@ Note, there's nothing to make, so you there's no need to run configure and you c
 
 Package managers
 ----
-Pull requests are wellcome :wink:
+Pull requests are welcome :wink:
 - [AUR](https://aur.archlinux.org/packages/sqlite_modern_cpp/) Arch Linux
  - maintainer [Nissar Chababy](https://github.com/funilrys)
 - Nuget (TODO [nuget.org](https://www.nuget.org/))
