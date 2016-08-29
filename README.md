@@ -78,7 +78,7 @@ int main() {
 ```
 
 Prepared Statements
-=====
+----
 It is possible to retain and reuse statments this will keep the query plan and in case of an complex query or many uses might increase the performance significantly.
 
 ```c++
@@ -121,7 +121,7 @@ It is possible to retain and reuse statments this will keep the query plan and i
 ```
 
 Shared Connections
-=====
+----
 If you need the handle to the database connection to execute sqlite3 commands directly you can get a managed shared_ptr to it, so it will not close as long as you have a referenc to it.
 
 Take this example on how to deal with a database backup using SQLITEs own functions in a save and modern way.
@@ -151,7 +151,7 @@ Take this example on how to deal with a database backup using SQLITEs own functi
 ```
 
 Transactions
-=====
+----
 You can use transactions with `begin;`, `commit;` and `rollback;` commands.
 
 ```c++
@@ -176,7 +176,7 @@ You can use transactions with `begin;`, `commit;` and `rollback;` commands.
 ```
 
 Blob
-=====
+----
 Use `std::vector<T>` to store and retrieve blob data.  
 `T` could be `char,short,int,long,long long, float or double`.
 
@@ -194,7 +194,7 @@ Use `std::vector<T>` to store and retrieve blob data.
 ```
 
 NULL values
-=====
+----
 If you have databases where some rows may be null, you can use `std::unique_ptr<T>` to retain the NULL values between C++ variables and the database.
 
 ```c++
@@ -225,7 +225,7 @@ db << "select age,name,img from tbl where id = 2"
 ```
 
 NULL values (DEPRICATED)
-=====
+----
 **Note: this option is deprecated and will be removed in future versions.**
 You can enable boost support by defining _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT before importing sqlite_modern_cpp header.
 
@@ -281,7 +281,7 @@ You can enable boost support by defining _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT b
 ```
 
 Errors
-=====
+----
 
 On error, the library throws an error class indicating the type of error. The error classes are derived from the SQLITE3 error names, so if the error code is SQLITE_CONSTRAINT, the error class thrown is sqlite::exceptions::constraint. Note that all errors are derived from sqlite::sqlite_exception and that itself is derived from std::runtime_exception.
 
@@ -304,12 +304,12 @@ On error, the library throws an error class indicating the type of error. The er
 ```
 
 NDK support
-======
+----
 Just Make sure you are using the full path of your database file :
 `sqlite::database db("/data/data/com.your.package/dbfile.db")`.
 
 Building and Installing
-=====
+----
 
 The usual way works for installing:
 
@@ -320,6 +320,13 @@ The usual way works for installing:
 
 Note, there's nothing to make, so you there's no need to run configure and you can simply point your compiler at the hdr/ directory.
 
+Package managers
+----
+Pull requests are wellcome :wink:
+- [AUR](https://aur.archlinux.org/packages/sqlite_modern_cpp/) Arch Linux
+ - maintainer [Nissar Chababy](https://github.com/funilrys)
+- Nuget (TODO [nuget.org](https://www.nuget.org/))
+- Conan (TODO [conan.io](https://conan.io/))
 
 ##License
 
