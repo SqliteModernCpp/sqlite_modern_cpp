@@ -280,7 +280,7 @@ namespace sqlite {
 
 		template <typename Function>
 		typename std::enable_if<!is_sqlite_value<Function>::value, void>::type operator>>(
-			Function func) {
+			Function&& func) {
 			typedef utility::function_traits<Function> traits;
 
 			this->_extract([&func, this]() {
@@ -359,7 +359,7 @@ namespace sqlite {
 		>
 			static typename std::enable_if<(sizeof...(Values) < Boundary), void>::type run(
 				database_binder& db,
-				Function&        function,
+				Function&&       function,
 				Values&&...      values
 				) {
 			nth_argument_type<Function, sizeof...(Values)> value{};
@@ -375,7 +375,7 @@ namespace sqlite {
 		>
 			static typename std::enable_if<(sizeof...(Values) == Boundary), void>::type run(
 				database_binder&,
-				Function&        function,
+				Function&&       function,
 				Values&&...      values
 				) {
 			function(std::move(values)...);
