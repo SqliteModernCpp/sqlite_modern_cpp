@@ -1,6 +1,7 @@
 #pragma once
 
 #include <tuple>
+#include<type_traits>
 
 namespace sqlite {
 	namespace utility {
@@ -9,7 +10,7 @@ namespace sqlite {
 
 		template <typename Function>
 		struct function_traits : public function_traits<
-			decltype(&Function::operator())
+			decltype(&std::remove_reference<Function>::type::operator())
 		> { };
 
 		template <
