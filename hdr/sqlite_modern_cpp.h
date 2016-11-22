@@ -88,11 +88,6 @@ namespace sqlite {
 			else if(error_code == SQLITE_NOTADB) throw exceptions::notadb(sqlite3_errstr(error_code));
 			else throw sqlite_exception(sqlite3_errstr(error_code));
 		}
-
-		static void throw_custom_error(const char* str) {
-			throw std::runtime_error(str);
-		}
-
 	}
 
 	class database;
