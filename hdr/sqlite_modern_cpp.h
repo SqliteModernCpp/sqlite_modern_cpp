@@ -88,11 +88,6 @@ namespace sqlite {
 			else if(error_code == SQLITE_NOTADB) throw exceptions::notadb(sqlite3_errstr(error_code));
 			else throw sqlite_exception(sqlite3_errstr(error_code));
 		}
-
-		static void throw_custom_error(const char* str) {
-			throw std::runtime_error(str);
-		}
-
 	}
 
 	class database;
@@ -174,11 +169,11 @@ namespace sqlite {
 			if((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {
 				call_back();
 			} else if(hresult == SQLITE_DONE) {
-				exceptions::throw_custom_error("no rows to extract: exactly 1 row expected");
+				throw exceptions::no_rows("no rows to extract: exactly 1 row expected");
 			}
 
 			if((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {
-				exceptions::throw_custom_error("not all rows extracted");
+				throw exceptions::more_rows("not all rows extracted");
 			}
 
 			if(hresult != SQLITE_DONE) {
