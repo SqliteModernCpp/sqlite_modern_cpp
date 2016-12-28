@@ -111,12 +111,19 @@ namespace sqlite {
 	class database_binder {
 
 	public:
-		database_binder(database_binder&& other) = default;
 		// database_binder is not copyable
 		database_binder() = delete;
 		database_binder(const database_binder& other) = delete;
 		database_binder& operator=(const database_binder&) = delete;
 
+		database_binder(database_binder&& other) :
+			_db(std::move(other._db)),
+			_sql(std::move(other._sql)),
+			_stmt(std::move(other._stmt)),
+			_inx(other._inx), execution_started(other.execution_started) {
+				_db = nullptr;
+				_stmt = nullptr;
+		}
 
 		void reset() {
 			sqlite3_reset(_stmt.get());
@@ -253,7 +260,7 @@ namespace sqlite {
 		~database_binder() noexcept(false) {
 			/* Will be executed if no >>op is found, but not if an exception
 			is in mid flight */
-			if(!execution_started && !std::uncaught_exception()) {
+			if(!execution_started && !std::uncaught_exception() && _stmt) {
 				execute();
 			}
 		}
