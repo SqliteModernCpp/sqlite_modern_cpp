@@ -120,10 +120,7 @@ namespace sqlite {
 			_db(std::move(other._db)),
 			_sql(std::move(other._sql)),
 			_stmt(std::move(other._stmt)),
-			_inx(other._inx), execution_started(other.execution_started) {
-				_db = nullptr;
-				_stmt = nullptr;
-		}
+			_inx(other._inx), execution_started(other.execution_started) { }
 
 		void reset() {
 			sqlite3_reset(_stmt.get());
