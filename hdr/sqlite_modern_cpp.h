@@ -306,6 +306,13 @@ namespace sqlite {
 		database(std::string const & db_name):
 			database(std::u16string(db_name.begin(), db_name.end())) {}
 
+    database(std::string const & db_name, int flags, const char *zVfs  = nullptr): _db(nullptr) {
+			sqlite3* tmp = nullptr;
+			auto ret = sqlite3_open_v2(db_name.data(), &tmp, flags, zVfs);
+			_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); });
+			if(ret != SQLITE_OK) exceptions::throw_sqlite_error(ret);
+    }
+
 		database(std::shared_ptr<sqlite3> db):
 			_db(db) {}
 
