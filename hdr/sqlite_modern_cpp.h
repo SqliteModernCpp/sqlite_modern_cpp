@@ -8,6 +8,10 @@
 #include <memory>
 #include <vector>
 
+#if __has_include(<optional>)
+#include <optional>
+#endif
+
 #ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
 #include <boost/optional.hpp>
 #endif
@@ -236,6 +240,11 @@ namespace sqlite {
 		friend void get_col_from_db(database_binder& db, int inx, std::u16string & w);
 		friend database_binder& operator <<(database_binder& db, const std::u16string& txt);
 
+
+#if __has_include(<optional>)
+		template <typename OptionalT> friend database_binder& operator <<(database_binder& db, const std::optional<OptionalT>& val);
+		template <typename OptionalT> friend void get_col_from_db(database_binder& db, int inx, std::optional<OptionalT>& o);
+#endif
 
 #ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
 		template <typename BoostOptionalT> friend database_binder& operator <<(database_binder& db, const boost::optional<BoostOptionalT>& val);
@@ -545,7 +554,33 @@ namespace sqlite {
 		++db._inx;
 		return db;
 	}
-	// boost::optinal support for NULL values
+	// std::optional support for NULL values
+#if __has_include(<optional>)
+	template <typename OptionalT> inline database_binder& operator <<(database_binder& db, const std::optional<OptionalT>& val) {
+		if(val) {
+			return operator << (std::move(db), std::move(*val));
+		}
+		int hresult;
+		if((hresult = sqlite3_bind_null(db._stmt.get(), db._inx)) != SQLITE_OK) {
+			exceptions::throw_sqlite_error(hresult);
+		}
+
+		++db._inx;
+		return db;
+	}
+
+	template <typename OptionalT> inline void get_col_from_db(database_binder& db, int inx, std::optional<OptionalT>& o) {
+		if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
+			o.reset();
+		} else {
+			OptionalT v;
+			get_col_from_db(db, inx, v);
+			o = std::move(v);
+		}
+	}
+#endif
+
+	// boost::optional support for NULL values
 #ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
 	template <typename BoostOptionalT> inline database_binder& operator <<(database_binder& db, const boost::optional<BoostOptionalT>& val) {
 		if(val) {
@@ -574,7 +609,7 @@ namespace sqlite {
 	// Some ppl are lazy so we have a operator for proper prep. statemant handling.
 	void inline operator++(database_binder& db, int) { db.execute(); db.reset(); }
 
-	// Convert the rValue binder to a reference and call first op<<, its needed for the call that creates the binder (be carfull of recursion here!)
+	// Convert the rValue binder to a reference and call first op<<, its needed for the call that creates the binder (be carefull of recursion here!)
 	template<typename T> database_binder& operator << (database_binder&& db, const T& val) { return db << val; }
 
 }
