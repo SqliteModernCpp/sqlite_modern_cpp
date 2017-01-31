@@ -6,6 +6,7 @@
 using namespace sqlite;
 using namespace std;
 
+#if __has_include(<optional>)
 void insert(database& db, bool is_null) {
 	int id = 1;
 	std::optional<int> val;
@@ -66,3 +67,9 @@ int main() {
 	}
 	exit(EXIT_SUCCESS);
 }
+#else
+#pragma message "<optional> not found, test disabled."
+int main() {
+	exit(EXIT_SUCCESS);
+}
+#endif
