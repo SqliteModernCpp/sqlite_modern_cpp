@@ -340,6 +340,34 @@ namespace sqlite {
 			return sqlite3_last_insert_rowid(_db.get());
 		}
 
+#ifdef SQLITE_HAS_CODEC
+		database(const std::string &db_name, const std::string &key): database(db_name) {
+			set_key(key);
+		}
+		database(const std::u16string &db_name, const std::string &key): database(db_name) {
+			set_key(key);
+		}
+
+		void set_key(const std::string &key) {
+			if(auto ret = sqlite3_key(_db.get(), key.data(), key.size()))
+				exceptions::throw_sqlite_error(ret);
+		}
+
+		void set_key(const std::string &key, const std::string &db_name) {
+			if(auto ret = sqlite3_key_v2(_db.get(), db_name.c_str(), key.data(), key.size()))
+				exceptions::throw_sqlite_error(ret);
+		}
+
+		void rekey(const std::string &new_key) {
+			if(auto ret = sqlite3_rekey(_db.get(), new_key.data(), new_key.size()))
+				exceptions::throw_sqlite_error(ret);
+		}
+
+		void rekey(const std::string &new_key, const std::string &db_name) {
+			if(auto ret = sqlite3_rekey_v2(_db.get(), db_name.c_str(), new_key.data(), new_key.size()))
+				exceptions::throw_sqlite_error(ret);
+		}
+#endif
 	};
 
 	template<std::size_t Count>
