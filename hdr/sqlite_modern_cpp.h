@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <string>
 #include <functional>
 #include <stdexcept>
@@ -213,7 +214,7 @@ namespace sqlite {
 			std::is_floating_point<Type>::value
 			|| std::is_integral<Type>::value
 			|| std::is_same<sqlite_int64, Type>::value
-    > { };
+		> { };
 
 
 		template<typename T> friend database_binder& operator <<(database_binder& db, const T& val);
@@ -297,6 +298,10 @@ namespace sqlite {
 		}
 	};
 
+	struct sqlite_config {
+		std::string key{};
+	};
+
 	class database {
 	private:
 		std::shared_ptr<sqlite3> _db;
@@ -317,6 +322,18 @@ namespace sqlite {
 
 		database(std::shared_ptr<sqlite3> db):
 			_db(db) {}
+
+		database(const std::string &db_name, const sqlite_config &config):
+			database(std::u16string(db_name.begin(), db_name.end()), config) {}
+
+		database(const std::u16string &db_name, const sqlite_config &config): database(db_name) {
+#ifdef SQLITE_HAS_CODEC
+			if(!config.key.empty()) set_key(config.key);
+#else
+			assert(config.key.empty() && "Encryption supported is disabled.");
+			(void)config; // Suppress unused warning
+#endif
+		}
 
 		database_binder operator<<(const std::string& sql) {
 			return database_binder(_db, sql);
@@ -341,13 +358,6 @@ namespace sqlite {
 		}
 
 #ifdef SQLITE_HAS_CODEC
-		database(const std::string &db_name, const std::string &key): database(db_name) {
-			set_key(key);
-		}
-		database(const std::u16string &db_name, const std::string &key): database(db_name) {
-			set_key(key);
-		}
-
 		void set_key(const std::string &key) {
 			if(auto ret = sqlite3_key(_db.get(), key.data(), key.size()))
 				exceptions::throw_sqlite_error(ret);
