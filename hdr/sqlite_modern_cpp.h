@@ -327,7 +327,7 @@ namespace sqlite {
 			database(std::u16string(db_name.begin(), db_name.end()), config) {}
 
 		database(const std::u16string &db_name, const sqlite_config &config): database(db_name) {
-#ifdef SQLITE_HAS_CODEC
+#ifdef ENABLE_SQLCIPHER
 			if(!config.key.empty()) set_key(config.key);
 #else
 			assert(config.key.empty() && "Encryption supported is disabled.");
@@ -357,7 +357,7 @@ namespace sqlite {
 			return sqlite3_last_insert_rowid(_db.get());
 		}
 
-#ifdef SQLITE_HAS_CODEC
+#ifdef ENABLE_SQLCIPHER
 		void set_key(const std::string &key) {
 			if(auto ret = sqlite3_key(_db.get(), key.data(), key.size()))
 				exceptions::throw_sqlite_error(ret);
