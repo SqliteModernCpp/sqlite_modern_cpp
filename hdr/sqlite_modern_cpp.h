@@ -207,8 +207,8 @@ namespace sqlite {
 			|| std::is_same<std::u16string, Type>::value
 			|| std::is_same<sqlite_int64, Type>::value
 		> { };
-		template <typename Type>
-		struct is_sqlite_value< std::vector<Type> > : public std::integral_constant<
+		template <typename Type, typename Allocator>
+		struct is_sqlite_value< std::vector<Type, Allocator> > : public std::integral_constant<
 			bool,
 			std::is_floating_point<Type>::value
 			|| std::is_integral<Type>::value
@@ -218,9 +218,9 @@ namespace sqlite {
 
 		template<typename T> friend database_binder& operator <<(database_binder& db, const T& val);
 		template<typename T> friend void get_col_from_db(database_binder& db, int inx, T& val);
-		/* for vector<T> support */
-		template<typename T> friend database_binder& operator <<(database_binder& db, const std::vector<T>& val);
-		template<typename T> friend void get_col_from_db(database_binder& db, int inx, std::vector<T>& val);
+		/* for vector<T, A> support */
+		template<typename T, typename A> friend database_binder& operator <<(database_binder& db, const std::vector<T, A>& val);
+		template<typename T, typename A> friend void get_col_from_db(database_binder& db, int inx, std::vector<T, A>& val);
 		/* for nullptr & unique_ptr support */
 		friend database_binder& operator <<(database_binder& db, std::nullptr_t);
 		template<typename T> friend database_binder& operator <<(database_binder& db, const std::unique_ptr<T>& val);
@@ -461,8 +461,8 @@ namespace sqlite {
 		}
 	}
 
-	// vector<T>
-	template<typename T> inline database_binder& operator<<(database_binder& db, const std::vector<T>& vec) {
+	// vector<T, A>
+	template<typename T, typename A> inline database_binder& operator<<(database_binder& db, const std::vector<T, A>& vec) {
 		void const* buf = reinterpret_cast<void const *>(vec.data());
 		int bytes = vec.size() * sizeof(T);
 		int hresult;
@@ -472,13 +472,13 @@ namespace sqlite {
 		++db._inx;
 		return db;
 	}
-	template<typename T> inline void get_col_from_db(database_binder& db, int inx, std::vector<T>& vec) {
+	template<typename T, typename A> inline void get_col_from_db(database_binder& db, int inx, std::vector<T, A>& vec) {
 		if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
 			vec.clear();
 		} else {
 			int bytes = sqlite3_column_bytes(db._stmt.get(), inx);
 			T const* buf = reinterpret_cast<T const *>(sqlite3_column_blob(db._stmt.get(), inx));
-			vec = std::vector<T>(buf, buf + bytes/sizeof(T));
+			vec = std::vector<T, A>(buf, buf + bytes/sizeof(T));
 		}
 	}
 
