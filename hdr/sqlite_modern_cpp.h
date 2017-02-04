@@ -8,7 +8,13 @@
 #include <memory>
 #include <vector>
 
+#ifdef __has_include
 #if __has_include(<optional>)
+#define _MODERN_SQLITE_STD_OPTIONAL_SUPPORT
+#endif
+#endif
+
+#ifdef _MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 #include <optional>
 #endif
 
@@ -241,7 +247,7 @@ namespace sqlite {
 		friend database_binder& operator <<(database_binder& db, const std::u16string& txt);
 
 
-#if __has_include(<optional>)
+#ifdef _MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 		template <typename OptionalT> friend database_binder& operator <<(database_binder& db, const std::optional<OptionalT>& val);
 		template <typename OptionalT> friend void get_col_from_db(database_binder& db, int inx, std::optional<OptionalT>& o);
 #endif
@@ -555,7 +561,7 @@ namespace sqlite {
 		return db;
 	}
 	// std::optional support for NULL values
-#if __has_include(<optional>)
+#ifdef _MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 	template <typename OptionalT> inline database_binder& operator <<(database_binder& db, const std::optional<OptionalT>& val) {
 		if(val) {
 			return operator << (std::move(db), std::move(*val));
