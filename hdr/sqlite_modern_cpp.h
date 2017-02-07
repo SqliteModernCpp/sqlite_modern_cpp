@@ -188,11 +188,11 @@ namespace sqlite {
 			if((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {
 				call_back();
 			} else if(hresult == SQLITE_DONE) {
-				throw exceptions::no_rows("no rows to extract: exactly 1 row expected");
+				throw exceptions::no_rows("no rows to extract: exactly 1 row expected", SQLITE_DONE);
 			}
 
 			if((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {
-				throw exceptions::more_rows("not all rows extracted");
+				throw exceptions::more_rows("not all rows extracted", SQLITE_ROW);
 			}
 
 			if(hresult != SQLITE_DONE) {
