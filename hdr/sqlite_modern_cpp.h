@@ -30,11 +30,11 @@ namespace sqlite {
 
 	class sqlite_exception: public std::runtime_error {
 	public:
-		sqlite_exception(const char* msg, char code = -1): runtime_error(msg), code(code) {}
-		sqlite_exception(char code): runtime_error(sqlite3_errstr(code)), code(code) {}
-		char get_code() {return code;}
+		sqlite_exception(const char* msg, int code = -1): runtime_error(msg), code(code) {}
+		sqlite_exception(int code): runtime_error(sqlite3_errstr(code)), code(code) {}
+		int get_code() {return code;}
 	private:
-		char code;
+		int code;
 	};
 
 	namespace exceptions {

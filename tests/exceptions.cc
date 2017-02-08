@@ -17,7 +17,7 @@ int main() {
     // inserting again to produce error
     db << "INSERT INTO person (id,name) VALUES (?,?)" << 1 << "jack";
   } catch (sqlite_exception& e) {
-    cerr << e.what() << endl;
+    cerr << e.get_code() << ": " << e.what() << endl;
     expception_thrown = true;
   } catch (...) {
     cerr << "Ok, we have our excpetion thrown" << endl;
