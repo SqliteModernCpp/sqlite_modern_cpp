@@ -5,9 +5,6 @@ sqlite modern cpp wrapper
 
 This library is a lightweight modern wrapper around sqlite C api .
 
-**Heads up!**
-The current master contains a _breaking change_ compared to the 2.4 release for database names with non-ASCII characters. For details, see [issue 82](https://github.com/aminroosta/sqlite_modern_cpp/issues/82).
-
 ```c++
 #include<iostream>
 #include <sqlite_modern_cpp.h>
@@ -323,6 +320,12 @@ The usual way works for installing:
 ```
 
 Note, there's nothing to make, so you there's no need to run configure and you can simply point your compiler at the hdr/ directory.
+
+Breaking Changes
+----
+
+- Databases with non-ASCII characters in their names created with versions up to 2.4 are not found by the current master.
+You have to manually rename them to their actual (UTF-8 encoded) name.
 
 Package managers
 ----
