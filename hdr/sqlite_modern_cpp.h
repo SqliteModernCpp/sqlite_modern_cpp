@@ -28,8 +28,13 @@
 
 namespace sqlite {
 
-	struct sqlite_exception: public std::runtime_error {
-		sqlite_exception(const char* msg):runtime_error(msg) {}
+	class sqlite_exception: public std::runtime_error {
+	public:
+		sqlite_exception(const char* msg, int code = -1): runtime_error(msg), code(code) {}
+		sqlite_exception(int code): runtime_error(sqlite3_errstr(code)), code(code) {}
+		int get_code() {return code;}
+	private:
+		int code;
 	};
 
 	namespace exceptions {
@@ -70,33 +75,33 @@ namespace sqlite {
 		class no_rows: public sqlite_exception { using sqlite_exception::sqlite_exception; };
 
 		static void throw_sqlite_error(const int& error_code) {
-			if(error_code == SQLITE_ERROR) throw exceptions::error(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_INTERNAL) throw exceptions::internal  (sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_PERM) throw exceptions::perm(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_ABORT) throw exceptions::abort(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_BUSY) throw exceptions::busy(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_LOCKED) throw exceptions::locked(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_NOMEM) throw exceptions::nomem(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_READONLY) throw exceptions::readonly(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_INTERRUPT) throw exceptions::interrupt(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_IOERR) throw exceptions::ioerr(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_CORRUPT) throw exceptions::corrupt(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_NOTFOUND) throw exceptions::notfound(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_FULL) throw exceptions::full(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_CANTOPEN) throw exceptions::cantopen(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_PROTOCOL) throw exceptions::protocol(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_EMPTY) throw exceptions::empty(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_SCHEMA) throw exceptions::schema(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_TOOBIG) throw exceptions::toobig(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_CONSTRAINT) throw exceptions::constraint(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_MISMATCH) throw exceptions::mismatch(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_MISUSE) throw exceptions::misuse(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_NOLFS) throw exceptions::nolfs(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_AUTH) throw exceptions::auth(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_FORMAT) throw exceptions::format(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_RANGE) throw exceptions::range(sqlite3_errstr(error_code));
-			else if(error_code == SQLITE_NOTADB) throw exceptions::notadb(sqlite3_errstr(error_code));
-			else throw sqlite_exception(sqlite3_errstr(error_code));
+			if(error_code == SQLITE_ERROR) throw exceptions::error(error_code);
+			else if(error_code == SQLITE_INTERNAL) throw exceptions::internal  (error_code);
+			else if(error_code == SQLITE_PERM) throw exceptions::perm(error_code);
+			else if(error_code == SQLITE_ABORT) throw exceptions::abort(error_code);
+			else if(error_code == SQLITE_BUSY) throw exceptions::busy(error_code);
+			else if(error_code == SQLITE_LOCKED) throw exceptions::locked(error_code);
+			else if(error_code == SQLITE_NOMEM) throw exceptions::nomem(error_code);
+			else if(error_code == SQLITE_READONLY) throw exceptions::readonly(error_code);
+			else if(error_code == SQLITE_INTERRUPT) throw exceptions::interrupt(error_code);
+			else if(error_code == SQLITE_IOERR) throw exceptions::ioerr(error_code);
+			else if(error_code == SQLITE_CORRUPT) throw exceptions::corrupt(error_code);
+			else if(error_code == SQLITE_NOTFOUND) throw exceptions::notfound(error_code);
+			else if(error_code == SQLITE_FULL) throw exceptions::full(error_code);
+			else if(error_code == SQLITE_CANTOPEN) throw exceptions::cantopen(error_code);
+			else if(error_code == SQLITE_PROTOCOL) throw exceptions::protocol(error_code);
+			else if(error_code == SQLITE_EMPTY) throw exceptions::empty(error_code);
+			else if(error_code == SQLITE_SCHEMA) throw exceptions::schema(error_code);
+			else if(error_code == SQLITE_TOOBIG) throw exceptions::toobig(error_code);
+			else if(error_code == SQLITE_CONSTRAINT) throw exceptions::constraint(error_code);
+			else if(error_code == SQLITE_MISMATCH) throw exceptions::mismatch(error_code);
+			else if(error_code == SQLITE_MISUSE) throw exceptions::misuse(error_code);
+			else if(error_code == SQLITE_NOLFS) throw exceptions::nolfs(error_code);
+			else if(error_code == SQLITE_AUTH) throw exceptions::auth(error_code);
+			else if(error_code == SQLITE_FORMAT) throw exceptions::format(error_code);
+			else if(error_code == SQLITE_RANGE) throw exceptions::range(error_code);
+			else if(error_code == SQLITE_NOTADB) throw exceptions::notadb(error_code);
+			else throw sqlite_exception(error_code);
 		}
 	}
 
@@ -183,11 +188,11 @@ namespace sqlite {
 			if((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {
 				call_back();
 			} else if(hresult == SQLITE_DONE) {
-				throw exceptions::no_rows("no rows to extract: exactly 1 row expected");
+				throw exceptions::no_rows("no rows to extract: exactly 1 row expected", SQLITE_DONE);
 			}
 
 			if((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {
-				throw exceptions::more_rows("not all rows extracted");
+				throw exceptions::more_rows("not all rows extracted", SQLITE_ROW);
 			}
 
 			if(hresult != SQLITE_DONE) {

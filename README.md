@@ -284,6 +284,7 @@ Errors
 ----
 
 On error, the library throws an error class indicating the type of error. The error classes are derived from the SQLITE3 error names, so if the error code is SQLITE_CONSTRAINT, the error class thrown is sqlite::exceptions::constraint. Note that all errors are derived from sqlite::sqlite_exception and that itself is derived from std::runtime_exception.
+sqlite::sqlite_exception has a get_code() member function to get the SQLITE3 error code.
 
 ```c++
 	database db(":memory:");
@@ -297,7 +298,7 @@ On error, the library throws an error class indicating the type of error. The er
 	/* if you are trying to catch all sqlite related exceptions
 	 * make sure to catch them by reference */
 	catch (sqlite_exception& e) {
-		cerr << e.what() << endl;
+		cerr  << e.get_code() << ": " << e.what() << endl;
 	}
 	/* you can catch specific exceptions as well,
 	   catch(sqlite::exceptions::constraint e) {  } */
