@@ -5,6 +5,9 @@ sqlite modern cpp wrapper
 
 This library is a lightweight modern wrapper around sqlite C api .
 
+**Heads up!**
+The current master contains a _breaking change_ compared to the 2.4 release for database names with non-ASCII characters. For details, see [issue 82](https://github.com/aminroosta/sqlite_modern_cpp/issues/82).
+
 ```c++
 #include<iostream>
 #include <sqlite_modern_cpp.h>
