@@ -133,7 +133,6 @@ namespace sqlite {
 
 		database_binder(database_binder&& other) :
 			_db(std::move(other._db)),
-			_sql(std::move(other._sql)),
 			_stmt(std::move(other._stmt)),
 			_inx(other._inx), execution_started(other.execution_started) { }
 
@@ -160,7 +159,6 @@ namespace sqlite {
 
 	private:
 		std::shared_ptr<sqlite3> _db;
-		std::u16string _sql;
 		std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> _stmt;
 
 		int _inx;
@@ -205,6 +203,14 @@ namespace sqlite {
 			int hresult;
 			sqlite3_stmt* tmp = nullptr;
 			hresult = sqlite3_prepare16_v2(_db.get(), sql.data(), -1, &tmp, nullptr);
+			if((hresult) != SQLITE_OK) exceptions::throw_sqlite_error(hresult);
+			return tmp;
+		}
+
+		sqlite3_stmt* _prepare(const std::string& sql) {
+			int hresult;
+			sqlite3_stmt* tmp = nullptr;
+			hresult = sqlite3_prepare_v2(_db.get(), sql.data(), -1, &tmp, nullptr);
 			if((hresult) != SQLITE_OK) exceptions::throw_sqlite_error(hresult);
 			return tmp;
 		}
@@ -266,13 +272,15 @@ namespace sqlite {
 
 		database_binder(std::shared_ptr<sqlite3> db, std::u16string const & sql):
 			_db(db),
-			_sql(sql),
 			_stmt(_prepare(sql), sqlite3_finalize),
 			_inx(1) {
 		}
 
 		database_binder(std::shared_ptr<sqlite3> db, std::string const & sql):
-			database_binder(db, std::u16string(sql.begin(), sql.end())) {}
+			_db(db),
+			_stmt(_prepare(sql), sqlite3_finalize),
+			_inx(1) {
+		}
 
 		~database_binder() noexcept(false) {
 			/* Will be executed if no >>op is found, but not if an exception
@@ -318,13 +326,16 @@ namespace sqlite {
 			auto ret = sqlite3_open16(db_name.data(), &tmp);
 			_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); }); // this will close the connection eventually when no longer needed.
 			if(ret != SQLITE_OK) exceptions::throw_sqlite_error(ret);
-
-
 			//_db.reset(tmp, sqlite3_close); // alternative close. (faster?)
 		}
 
-		database(std::string const & db_name):
-			database(std::u16string(db_name.begin(), db_name.end())) {}
+		database(std::string const & db_name): _db(nullptr) {
+			sqlite3* tmp = nullptr;
+			auto ret = sqlite3_open(db_name.data(), &tmp);
+			_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); }); // this will close the connection eventually when no longer needed.
+			if(ret != SQLITE_OK) exceptions::throw_sqlite_error(ret);
+			//_db.reset(tmp, sqlite3_close); // alternative close. (faster?)
+		}
 
 		database(std::shared_ptr<sqlite3> db):
 			_db(db) {}
