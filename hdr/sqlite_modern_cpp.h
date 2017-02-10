@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cassert>
 #include <string>
 #include <functional>
 #include <stdexcept>
@@ -299,11 +298,10 @@ namespace sqlite {
 	};
 
 	struct sqlite_config {
-		std::string key{};
 	};
 
 	class database {
-	private:
+	protected:
 		std::shared_ptr<sqlite3> _db;
 
 	public:
@@ -323,16 +321,12 @@ namespace sqlite {
 		database(std::shared_ptr<sqlite3> db):
 			_db(db) {}
 
-		database(const std::string &db_name, const sqlite_config &config):
-			database(std::u16string(db_name.begin(), db_name.end()), config) {}
+		database(const std::string &db_name, const sqlite_config &config): database(db_name) {
+			(void)config; // Suppress unused warning
+		}
 
 		database(const std::u16string &db_name, const sqlite_config &config): database(db_name) {
-#ifdef ENABLE_SQLCIPHER
-			if(!config.key.empty()) set_key(config.key);
-#else
-			assert(config.key.empty() && "Encryption supported is disabled.");
 			(void)config; // Suppress unused warning
-#endif
 		}
 
 		database_binder operator<<(const std::string& sql) {
@@ -356,28 +350,6 @@ namespace sqlite {
 		sqlite3_int64 last_insert_rowid() const {
 			return sqlite3_last_insert_rowid(_db.get());
 		}
-
-#ifdef ENABLE_SQLCIPHER
-		void set_key(const std::string &key) {
-			if(auto ret = sqlite3_key(_db.get(), key.data(), key.size()))
-				exceptions::throw_sqlite_error(ret);
-		}
-
-		void set_key(const std::string &key, const std::string &db_name) {
-			if(auto ret = sqlite3_key_v2(_db.get(), db_name.c_str(), key.data(), key.size()))
-				exceptions::throw_sqlite_error(ret);
-		}
-
-		void rekey(const std::string &new_key) {
-			if(auto ret = sqlite3_rekey(_db.get(), new_key.data(), new_key.size()))
-				exceptions::throw_sqlite_error(ret);
-		}
-
-		void rekey(const std::string &new_key, const std::string &db_name) {
-			if(auto ret = sqlite3_rekey_v2(_db.get(), db_name.c_str(), new_key.data(), new_key.size()))
-				exceptions::throw_sqlite_error(ret);
-		}
-#endif
 	};
 
 	template<std::size_t Count>
