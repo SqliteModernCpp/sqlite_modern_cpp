@@ -65,7 +65,7 @@ tests/results:$(TEST_RESULT)
 	@echo -------------- Test Results ---------------
 	@cat tests/results
 	@echo -------------------------------------------
-	@ ! grep -qv OK tests/results 
+	@ ! grep -qv 'OK\|Skipped' tests/results 
 
 
 #Build a test executable from a test program. On compile error,
@@ -87,6 +87,9 @@ tests/%.result_: tests/%.test
 	   if [ $$a -ge 128 and ] ; \
 	   then \
 	       echo Crash!! > $@ ; \
+	   elif [ $$a -eq 42 ] ;\
+	   then \
+	       echo Skipped > $@ ; \
 	   elif [ $$a -ne 126 ] ;\
 	   then \
 	       echo Failed > $@ ; \
