@@ -321,6 +321,12 @@ The usual way works for installing:
 
 Note, there's nothing to make, so you there's no need to run configure and you can simply point your compiler at the hdr/ directory.
 
+Breaking Changes
+----
+
+- Databases with non-ASCII characters in their names created with versions up to 2.4 are not found by the current master.
+You have to manually rename them to their actual (UTF-8 encoded) name.
+
 Package managers
 ----
 Pull requests are welcome :wink:
