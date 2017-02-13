@@ -24,7 +24,8 @@
 
 #include <sqlite3.h>
 
-#include <sqlite_modern_cpp/utility/function_traits.h>
+#include "sqlite_modern_cpp/utility/function_traits.h"
+#include "sqlite_modern_cpp/utility/uncaught_exceptions.h"
 
 namespace sqlite {
 
@@ -160,6 +161,7 @@ namespace sqlite {
 	private:
 		std::shared_ptr<sqlite3> _db;
 		std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> _stmt;
+		utility::UncaughtExceptionDetector _has_uncaught_exception;
 
 		int _inx;
 
@@ -285,7 +287,7 @@ namespace sqlite {
 		~database_binder() noexcept(false) {
 			/* Will be executed if no >>op is found, but not if an exception
 			is in mid flight */
-			if(!execution_started && !std::uncaught_exception() && _stmt) {
+			if(!execution_started && !_has_uncaught_exception && _stmt) {
 				execute();
 			}
 		}
