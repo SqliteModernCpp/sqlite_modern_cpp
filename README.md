@@ -308,6 +308,47 @@ NDK support
 Just Make sure you are using the full path of your database file :
 `sqlite::database db("/data/data/com.your.package/dbfile.db")`.
 
+SQLCipher
+----
+
+The library has native support for [SQLCipher](https://www.zetetic.net/sqlcipher/). If you want to use encrypted databases, you have to include the `sqlite_moder_cpp/sqlcipher.h` header.
+Then you can create a `sqlcipher_database`.
+
+```c++
+#include<iostream>
+#include <sqlite_modern_cpp/sqlcipher.h>
+using namespace sqlite;
+using namespace std;
+
+int main() {
+
+	try {
+		// creates a database file 'dbfile.db' if it does not exists with password 'secret'
+		sqlcipher_config config;
+		config.key = secret;
+		sqlcipher_database db("dbfile.db", config);
+
+		// executes the query and creates a 'user' table
+		db <<
+			"create table if not exists user ("
+			"   _id integer primary key autoincrement not null,"
+			"   age int,"
+			"   name text,"
+			"   weight real"
+			");";
+
+		// More queries
+
+    db.rekey("new_secret"); // Change the password of the already encrypted database.
+
+    // Even more queries
+	}
+	catch (exception& e) {
+		cout << e.what() << endl;
+	}
+}
+```
+
 Building and Installing
 ----
 
