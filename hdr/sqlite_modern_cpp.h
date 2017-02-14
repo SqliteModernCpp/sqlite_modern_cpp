@@ -157,9 +157,13 @@ namespace sqlite {
 		}
 		
     std::string sql() {
+#if SQLITE_VERSION_NUMBER >= 3014000
       auto sqlite_deleter = [](void *ptr) {sqlite3_free(ptr);};
       std::unique_ptr<char, decltype(sqlite_deleter)> str(sqlite3_expanded_sql(_stmt.get()), sqlite_deleter);
       return str ? str.get() : original_sql();
+#else
+      return original_sql();
+#endif
     }
 
     std::string original_sql() {

@@ -21,7 +21,11 @@ int main() {
     cerr << e.get_code() << ": " << e.what() << " during "
          << quoted(e.get_sql()) << endl;
     expception_thrown = true;
+#if SQLITE_VERSION_NUMBER >= 3014000
     if(e.get_sql() != "INSERT INTO person (id,name) VALUES (1,'jack')") {
+#else
+    if(e.get_sql() != "INSERT INTO person (id,name) VALUES (?,?)") {
+#endif
       cerr << "Wrong statement failed\n";
       exit(EXIT_FAILURE);
     }
