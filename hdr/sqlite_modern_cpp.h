@@ -318,6 +318,47 @@ namespace sqlite {
 
 	namespace sql_function_binder {
 		template<
+			typename    ContextType,
+			std::size_t Count,
+			typename    Functions
+		>
+		inline void step(
+			  sqlite3_context* db,
+			  int              count,
+			  sqlite3_value**  vals
+		);
+
+		template<
+			std::size_t Count,
+			typename    Functions,
+			typename... Values
+		>
+		inline typename std::enable_if<(sizeof...(Values) && sizeof...(Values) < Count), void>::type step(
+			  sqlite3_context* db,
+			  int              count,
+			  sqlite3_value**  vals,
+			  Values&&...      values
+		);
+
+		template<
+			std::size_t Count,
+			typename    Functions,
+			typename... Values
+		>
+		inline typename std::enable_if<(sizeof...(Values) == Count), void>::type step(
+			  sqlite3_context* db,
+			  int,
+			  sqlite3_value**,
+			  Values&&...      values
+		);
+
+		template<
+			typename    ContextType,
+			typename    Functions
+		>
+		inline void final(sqlite3_context* db);
+
+		template<
 			std::size_t Count,
 			typename    Function,
 			typename... Values
@@ -399,6 +440,22 @@ namespace sqlite {
 			    nullptr, nullptr, [](void* ptr){
 			  delete static_cast<decltype(funcPtr)>(ptr);
 			});
+		}
+
+		template <typename StepFunction, typename FinalFunction>
+		void define(const std::string &name, StepFunction&& step, FinalFunction&& final) {
+			typedef utility::function_traits<StepFunction> traits;
+      using ContextType = typename std::remove_reference<typename traits::template argument<0>>::type;
+
+			auto funcPtr = new auto(std::make_pair(std::forward<StepFunction>(step), std::forward<FinalFunction>(final)));
+			if(int result = sqlite3_create_function_v2(
+			    _db.get(), name.c_str(), traits::arity - 1, SQLITE_UTF8, funcPtr, nullptr,
+			    sql_function_binder::step<ContextType, traits::arity, typename std::remove_reference<decltype(*funcPtr)>::type>,
+			    sql_function_binder::final<ContextType, typename std::remove_reference<decltype(*funcPtr)>::type>,
+			    [](void* ptr){
+			  delete static_cast<decltype(funcPtr)>(ptr);
+			}))
+      exceptions::throw_sqlite_error(result);
 		}
 
 	};
@@ -792,6 +849,80 @@ namespace sqlite {
 	template<typename T> database_binder& operator << (database_binder&& db, const T& val) { return db << val; }
 
   namespace sql_function_binder {
+    template<class T>
+    struct AggregateCtxt {
+      T obj;
+      bool constructed = true;
+    };
+
+		template<
+			typename ContextType,
+			std::size_t Count,
+			typename    Functions
+		>
+		inline void step(
+			  sqlite3_context* db,
+			  int              count,
+			  sqlite3_value**  vals
+		) {
+      auto ctxt = static_cast<AggregateCtxt<ContextType>*>(sqlite3_aggregate_context(db, sizeof(AggregateCtxt<ContextType>)));
+      if(!ctxt) return;
+      if(!ctxt->constructed) new(ctxt) AggregateCtxt<ContextType>();
+      step<Count, Functions>(db, count, vals, ctxt->obj);
+    }
+
+		template<
+			std::size_t Count,
+			typename    Functions,
+			typename... Values
+		>
+		inline typename std::enable_if<(sizeof...(Values) && sizeof...(Values) < Count), void>::type step(
+			  sqlite3_context* db,
+			  int              count,
+			  sqlite3_value**  vals,
+			  Values&&...      values
+		) {
+      typename utility::function_traits<typename Functions::first_type>::template argument<sizeof...(Values)> value{};
+			get_val_from_db(vals[sizeof...(Values) - 1], value);
+
+			step<Count, Functions>(db, count, vals, std::forward<Values>(values)..., std::move(value));
+		}
+
+		template<
+			std::size_t Count,
+			typename    Functions,
+			typename... Values
+		>
+		inline typename std::enable_if<(sizeof...(Values) == Count), void>::type step(
+			  sqlite3_context* db,
+			  int,
+			  sqlite3_value**,
+			  Values&&...      values
+		) {
+		  static_cast<Functions*>(sqlite3_user_data(db))->first(std::forward<Values>(values)...);
+		};
+
+		template<
+			typename    ContextType,
+			typename    Functions
+		>
+		inline void final(sqlite3_context* db) {
+		  try {
+        auto ctxt = static_cast<AggregateCtxt<ContextType>*>(sqlite3_aggregate_context(db, sizeof(AggregateCtxt<ContextType>)));
+        if(!ctxt) return;
+        if(!ctxt->constructed) new(ctxt) AggregateCtxt<ContextType>();
+		    store_result_in_db(db,
+		        static_cast<Functions*>(sqlite3_user_data(db))->second(ctxt->obj));
+		  } catch(sqlite_exception &e) {
+		    sqlite3_result_error_code(db, e.get_code());
+		    sqlite3_result_error(db, e.what(), -1);
+		  } catch(std::exception &e) {
+		    sqlite3_result_error(db, e.what(), -1);
+		  } catch(...) {
+		    sqlite3_result_error(db, "Unknown error", -1);
+		  }
+		}
+
 		template<
 			std::size_t Count,
 			typename    Function,
@@ -822,7 +953,7 @@ namespace sqlite {
 		) {
 		  try {
 		    store_result_in_db(db,
-		        (*static_cast<Function*>(sqlite3_user_data(db)))(std::move(values)...));
+		        (*static_cast<Function*>(sqlite3_user_data(db)))(std::forward<Values>(values)...));
 		  } catch(sqlite_exception &e) {
 		    sqlite3_result_error_code(db, e.get_code());
 		    sqlite3_result_error(db, e.what(), -1);
