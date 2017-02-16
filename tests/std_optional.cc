@@ -70,6 +70,6 @@ int main() {
 #else
 #pragma message "<optional> not found, test disabled."
 int main() {
-	exit(EXIT_SUCCESS);
+	exit(42);
 }
 #endif
