@@ -232,7 +232,7 @@ namespace sqlite {
 			std::is_floating_point<Type>::value
 			|| std::is_integral<Type>::value
 			|| std::is_same<sqlite_int64, Type>::value
-    > { };
+		> { };
 
 
 		template<typename T> friend database_binder& operator <<(database_binder& db, const T& val);
@@ -318,8 +318,11 @@ namespace sqlite {
 		}
 	};
 
+	struct sqlite_config {
+	};
+
 	class database {
-	private:
+	protected:
 		std::shared_ptr<sqlite3> _db;
 
 	public:
@@ -342,6 +345,14 @@ namespace sqlite {
 		database(std::shared_ptr<sqlite3> db):
 			_db(db) {}
 
+		database(const std::string &db_name, const sqlite_config &config): database(db_name) {
+			(void)config; // Suppress unused warning
+		}
+
+		database(const std::u16string &db_name, const sqlite_config &config): database(db_name) {
+			(void)config; // Suppress unused warning
+		}
+
 		database_binder operator<<(const std::string& sql) {
 			return database_binder(_db, sql);
 		}
@@ -363,7 +374,6 @@ namespace sqlite {
 		sqlite3_int64 last_insert_rowid() const {
 			return sqlite3_last_insert_rowid(_db.get());
 		}
-
 	};
 
 	template<std::size_t Count>

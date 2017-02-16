@@ -84,7 +84,7 @@ tests/%.result_: tests/%.test
 	a=$$? ;\
 	if [ $$a != 0 ]; \
 	then \
-	   if [ $$a -ge 128 and ] ; \
+	   if [ $$a -ge 128 ] ; \
 	   then \
 	       echo Crash!! > $@ ; \
 	   elif [ $$a -eq 42 ] ;\
