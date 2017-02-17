@@ -434,12 +434,13 @@ namespace sqlite {
 			typedef utility::function_traits<Function> traits;
 
 			auto funcPtr = new auto(std::forward<Function>(func));
-			sqlite3_create_function_v2(
+			if(int result = sqlite3_create_function_v2(
 			    _db.get(), name.c_str(), traits::arity, SQLITE_UTF8, funcPtr,
 			    sql_function_binder::scalar<traits::arity, typename std::remove_reference<Function>::type>,
 			    nullptr, nullptr, [](void* ptr){
 			  delete static_cast<decltype(funcPtr)>(ptr);
-			});
+			}))
+			  exceptions::throw_sqlite_error(result);
 		}
 
 		template <typename StepFunction, typename FinalFunction>
@@ -455,7 +456,7 @@ namespace sqlite {
 			    [](void* ptr){
 			  delete static_cast<decltype(funcPtr)>(ptr);
 			}))
-      exceptions::throw_sqlite_error(result);
+        exceptions::throw_sqlite_error(result);
 		}
 
 	};
@@ -488,7 +489,7 @@ namespace sqlite {
 				Function&&       function,
 				Values&&...      values
 				) {
-			nth_argument_type<Function, sizeof...(Values)> value{};
+      typename std::remove_cv<typename std::remove_reference<nth_argument_type<Function, sizeof...(Values)>>::type>::type value{};
 			get_col_from_db(db, sizeof...(Values), value);
 
 			run<Function>(db, function, std::forward<Values>(values)..., std::move(value));
@@ -882,7 +883,13 @@ namespace sqlite {
 			  sqlite3_value**  vals,
 			  Values&&...      values
 		) {
-      typename utility::function_traits<typename Functions::first_type>::template argument<sizeof...(Values)> value{};
+      typename std::remove_cv<
+          typename std::remove_reference<
+              typename utility::function_traits<
+                  typename Functions::first_type
+              >::template argument<sizeof...(Values)>
+          >::type
+      >::type value{};
 			get_val_from_db(vals[sizeof...(Values) - 1], value);
 
 			step<Count, Functions>(db, count, vals, std::forward<Values>(values)..., std::move(value));
@@ -934,7 +941,11 @@ namespace sqlite {
 			  sqlite3_value**  vals,
 			  Values&&...      values
 		) {
-      typename utility::function_traits<Function>::template argument<sizeof...(Values)> value{};
+      typename std::remove_cv<
+          typename std::remove_reference<
+              typename utility::function_traits<Function>::template argument<sizeof...(Values)>
+          >::type
+      >::type value{};
 			get_val_from_db(vals[sizeof...(Values)], value);
 
 			scalar<Count, Function>(db, count, vals, std::forward<Values>(values)..., std::move(value));
