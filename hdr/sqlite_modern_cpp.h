@@ -7,6 +7,8 @@
 #include <tuple>
 #include <memory>
 #include <vector>
+#include <locale>
+#include <codecvt>
 
 #ifdef __has_include
 #if __cplusplus > 201402 && __has_include(<optional>)
@@ -218,11 +220,7 @@ namespace sqlite {
 		}
 
 		sqlite3_stmt* _prepare(const std::u16string& sql) {
-			int hresult;
-			sqlite3_stmt* tmp = nullptr;
-			hresult = sqlite3_prepare16_v2(_db.get(), sql.data(), -1, &tmp, nullptr);
-			if((hresult) != SQLITE_OK) exceptions::throw_sqlite_error(hresult);
-			return tmp;
+      return _prepare(std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(sql));
 		}
 
 		sqlite3_stmt* _prepare(const std::string& sql) {
