@@ -304,6 +304,25 @@ sqlite::sqlite_exception has a get_code() member function to get the SQLITE3 err
 	   catch(sqlite::exceptions::constraint e) {  } */
 ```
 
+Custom SQL functions
+----
+
+To extend SQLite with custom functions, you just implement them in C++:
+
+```c++
+  database db(":memory:");
+  db.define("tgamma", [](double i) {return std::tgamma(i);});
+  db << "CREATE TABLE numbers (number INTEGER);";
+
+  for(auto i=0; i!=10; ++i)
+    db << "INSERT INTO numbers VALUES (?);" << i;
+
+  db << "SELECT number, tgamma(number+1) FROM numbers;" >> [](double number, double factorial) {
+    cout << number << "! = " << factorial << '\n';
+  };
+```
+
+
 NDK support
 ----
 Just Make sure you are using the full path of your database file :
