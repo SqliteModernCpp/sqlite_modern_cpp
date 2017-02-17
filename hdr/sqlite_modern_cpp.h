@@ -31,11 +31,13 @@ namespace sqlite {
 
 	class sqlite_exception: public std::runtime_error {
 	public:
-		sqlite_exception(const char* msg, int code = -1): runtime_error(msg), code(code) {}
-		sqlite_exception(int code): runtime_error(sqlite3_errstr(code)), code(code) {}
+		sqlite_exception(const char* msg, std::string sql, int code = -1): runtime_error(msg), code(code), sql(sql) {}
+		sqlite_exception(int code, std::string sql): runtime_error(sqlite3_errstr(code)), code(code), sql(sql) {}
 		int get_code() {return code;}
+    std::string get_sql() {return sql;}
 	private:
 		int code;
+    std::string sql;
 	};
 
 	namespace exceptions {
@@ -75,34 +77,34 @@ namespace sqlite {
 		class more_rows: public sqlite_exception { using sqlite_exception::sqlite_exception; };
 		class no_rows: public sqlite_exception { using sqlite_exception::sqlite_exception; };
 
-		static void throw_sqlite_error(const int& error_code) {
-			if(error_code == SQLITE_ERROR) throw exceptions::error(error_code);
-			else if(error_code == SQLITE_INTERNAL) throw exceptions::internal  (error_code);
-			else if(error_code == SQLITE_PERM) throw exceptions::perm(error_code);
-			else if(error_code == SQLITE_ABORT) throw exceptions::abort(error_code);
-			else if(error_code == SQLITE_BUSY) throw exceptions::busy(error_code);
-			else if(error_code == SQLITE_LOCKED) throw exceptions::locked(error_code);
-			else if(error_code == SQLITE_NOMEM) throw exceptions::nomem(error_code);
-			else if(error_code == SQLITE_READONLY) throw exceptions::readonly(error_code);
-			else if(error_code == SQLITE_INTERRUPT) throw exceptions::interrupt(error_code);
-			else if(error_code == SQLITE_IOERR) throw exceptions::ioerr(error_code);
-			else if(error_code == SQLITE_CORRUPT) throw exceptions::corrupt(error_code);
-			else if(error_code == SQLITE_NOTFOUND) throw exceptions::notfound(error_code);
-			else if(error_code == SQLITE_FULL) throw exceptions::full(error_code);
-			else if(error_code == SQLITE_CANTOPEN) throw exceptions::cantopen(error_code);
-			else if(error_code == SQLITE_PROTOCOL) throw exceptions::protocol(error_code);
-			else if(error_code == SQLITE_EMPTY) throw exceptions::empty(error_code);
-			else if(error_code == SQLITE_SCHEMA) throw exceptions::schema(error_code);
-			else if(error_code == SQLITE_TOOBIG) throw exceptions::toobig(error_code);
-			else if(error_code == SQLITE_CONSTRAINT) throw exceptions::constraint(error_code);
-			else if(error_code == SQLITE_MISMATCH) throw exceptions::mismatch(error_code);
-			else if(error_code == SQLITE_MISUSE) throw exceptions::misuse(error_code);
-			else if(error_code == SQLITE_NOLFS) throw exceptions::nolfs(error_code);
-			else if(error_code == SQLITE_AUTH) throw exceptions::auth(error_code);
-			else if(error_code == SQLITE_FORMAT) throw exceptions::format(error_code);
-			else if(error_code == SQLITE_RANGE) throw exceptions::range(error_code);
-			else if(error_code == SQLITE_NOTADB) throw exceptions::notadb(error_code);
-			else throw sqlite_exception(error_code);
+		static void throw_sqlite_error(const int& error_code, const std::string &sql = "") {
+			if(error_code == SQLITE_ERROR) throw exceptions::error(error_code, sql);
+			else if(error_code == SQLITE_INTERNAL) throw exceptions::internal  (error_code, sql);
+			else if(error_code == SQLITE_PERM) throw exceptions::perm(error_code, sql);
+			else if(error_code == SQLITE_ABORT) throw exceptions::abort(error_code, sql);
+			else if(error_code == SQLITE_BUSY) throw exceptions::busy(error_code, sql);
+			else if(error_code == SQLITE_LOCKED) throw exceptions::locked(error_code, sql);
+			else if(error_code == SQLITE_NOMEM) throw exceptions::nomem(error_code, sql);
+			else if(error_code == SQLITE_READONLY) throw exceptions::readonly(error_code, sql);
+			else if(error_code == SQLITE_INTERRUPT) throw exceptions::interrupt(error_code, sql);
+			else if(error_code == SQLITE_IOERR) throw exceptions::ioerr(error_code, sql);
+			else if(error_code == SQLITE_CORRUPT) throw exceptions::corrupt(error_code, sql);
+			else if(error_code == SQLITE_NOTFOUND) throw exceptions::notfound(error_code, sql);
+			else if(error_code == SQLITE_FULL) throw exceptions::full(error_code, sql);
+			else if(error_code == SQLITE_CANTOPEN) throw exceptions::cantopen(error_code, sql);
+			else if(error_code == SQLITE_PROTOCOL) throw exceptions::protocol(error_code, sql);
+			else if(error_code == SQLITE_EMPTY) throw exceptions::empty(error_code, sql);
+			else if(error_code == SQLITE_SCHEMA) throw exceptions::schema(error_code, sql);
+			else if(error_code == SQLITE_TOOBIG) throw exceptions::toobig(error_code, sql);
+			else if(error_code == SQLITE_CONSTRAINT) throw exceptions::constraint(error_code, sql);
+			else if(error_code == SQLITE_MISMATCH) throw exceptions::mismatch(error_code, sql);
+			else if(error_code == SQLITE_MISUSE) throw exceptions::misuse(error_code, sql);
+			else if(error_code == SQLITE_NOLFS) throw exceptions::nolfs(error_code, sql);
+			else if(error_code == SQLITE_AUTH) throw exceptions::auth(error_code, sql);
+			else if(error_code == SQLITE_FORMAT) throw exceptions::format(error_code, sql);
+			else if(error_code == SQLITE_RANGE) throw exceptions::range(error_code, sql);
+			else if(error_code == SQLITE_NOTADB) throw exceptions::notadb(error_code, sql);
+			else throw sqlite_exception(error_code, sql);
 		}
 	}
 
@@ -150,10 +152,24 @@ namespace sqlite {
 			while((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {}
 
 			if(hresult != SQLITE_DONE) {
-				exceptions::throw_sqlite_error(hresult);
+				exceptions::throw_sqlite_error(hresult, sql());
 			}
 			used(true); /* prevent from executing again when goes out of scope */
 		}
+		
+    std::string sql() {
+#if SQLITE_VERSION_NUMBER >= 3014000
+      auto sqlite_deleter = [](void *ptr) {sqlite3_free(ptr);};
+      std::unique_ptr<char, decltype(sqlite_deleter)> str(sqlite3_expanded_sql(_stmt.get()), sqlite_deleter);
+      return str ? str.get() : original_sql();
+#else
+      return original_sql();
+#endif
+    }
+
+    std::string original_sql() {
+      return sqlite3_sql(_stmt.get());
+    }
 
 		void used(bool state) { execution_started = state; }
 		bool used() const { return execution_started; }
@@ -176,7 +192,7 @@ namespace sqlite {
 			}
 
 			if(hresult != SQLITE_DONE) {
-				exceptions::throw_sqlite_error(hresult);
+				exceptions::throw_sqlite_error(hresult, sql());
 			}
 			reset();
 		}
@@ -188,15 +204,15 @@ namespace sqlite {
 			if((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {
 				call_back();
 			} else if(hresult == SQLITE_DONE) {
-				throw exceptions::no_rows("no rows to extract: exactly 1 row expected", SQLITE_DONE);
+				throw exceptions::no_rows("no rows to extract: exactly 1 row expected", sql(), SQLITE_DONE);
 			}
 
 			if((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {
-				throw exceptions::more_rows("not all rows extracted", SQLITE_ROW);
+				throw exceptions::more_rows("not all rows extracted", sql(), SQLITE_ROW);
 			}
 
 			if(hresult != SQLITE_DONE) {
-				exceptions::throw_sqlite_error(hresult);
+				exceptions::throw_sqlite_error(hresult, sql());
 			}
 			reset();
 		}
@@ -213,7 +229,7 @@ namespace sqlite {
 			int hresult;
 			sqlite3_stmt* tmp = nullptr;
 			hresult = sqlite3_prepare_v2(_db.get(), sql.data(), -1, &tmp, nullptr);
-			if((hresult) != SQLITE_OK) exceptions::throw_sqlite_error(hresult);
+			if((hresult) != SQLITE_OK) exceptions::throw_sqlite_error(hresult, sql);
 			return tmp;
 		}
 
@@ -526,7 +542,7 @@ namespace sqlite {
 	 inline database_binder& operator<<(database_binder& db, const int& val) {
 		int hresult;
 		if((hresult = sqlite3_bind_int(db._stmt.get(), db._inx, val)) != SQLITE_OK) {
-			exceptions::throw_sqlite_error(hresult);
+			exceptions::throw_sqlite_error(hresult, db.sql());
 		}
 		++db._inx;
 		return db;
@@ -553,7 +569,7 @@ namespace sqlite {
 	 inline database_binder& operator <<(database_binder& db, const sqlite_int64&  val) {
 		int hresult;
 		if((hresult = sqlite3_bind_int64(db._stmt.get(), db._inx, val)) != SQLITE_OK) {
-			exceptions::throw_sqlite_error(hresult);
+			exceptions::throw_sqlite_error(hresult, db.sql());
 		}
 
 		++db._inx;
@@ -581,7 +597,7 @@ namespace sqlite {
 	 inline database_binder& operator <<(database_binder& db, const float& val) {
 		int hresult;
 		if((hresult = sqlite3_bind_double(db._stmt.get(), db._inx, double(val))) != SQLITE_OK) {
-			exceptions::throw_sqlite_error(hresult);
+			exceptions::throw_sqlite_error(hresult, db.sql());
 		}
 
 		++db._inx;
@@ -609,7 +625,7 @@ namespace sqlite {
 	 inline database_binder& operator <<(database_binder& db, const double& val) {
 		int hresult;
 		if((hresult = sqlite3_bind_double(db._stmt.get(), db._inx, val)) != SQLITE_OK) {
-			exceptions::throw_sqlite_error(hresult);
+			exceptions::throw_sqlite_error(hresult, db.sql());
 		}
 
 		++db._inx;
@@ -639,7 +655,7 @@ namespace sqlite {
 		int bytes = vec.size() * sizeof(T);
 		int hresult;
 		if((hresult = sqlite3_bind_blob(db._stmt.get(), db._inx, buf, bytes, SQLITE_TRANSIENT)) != SQLITE_OK) {
-			exceptions::throw_sqlite_error(hresult);
+			exceptions::throw_sqlite_error(hresult, db.sql());
 		}
 		++db._inx;
 		return db;
@@ -672,7 +688,7 @@ namespace sqlite {
 	inline database_binder& operator <<(database_binder& db, std::nullptr_t) {
 		int hresult;
 		if((hresult = sqlite3_bind_null(db._stmt.get(), db._inx)) != SQLITE_OK) {
-			exceptions::throw_sqlite_error(hresult);
+			exceptions::throw_sqlite_error(hresult, db.sql());
 		}
 		++db._inx;
 		return db;
@@ -734,7 +750,7 @@ namespace sqlite {
 	 inline database_binder& operator <<(database_binder& db, const std::string& txt) {
 		int hresult;
 		if((hresult = sqlite3_bind_text(db._stmt.get(), db._inx, txt.data(), -1, SQLITE_TRANSIENT)) != SQLITE_OK) {
-			exceptions::throw_sqlite_error(hresult);
+			exceptions::throw_sqlite_error(hresult, db.sql());
 		}
 
 		++db._inx;
@@ -765,7 +781,7 @@ namespace sqlite {
 	 inline database_binder& operator <<(database_binder& db, const std::u16string& txt) {
 		int hresult;
 		if((hresult = sqlite3_bind_text16(db._stmt.get(), db._inx, txt.data(), -1, SQLITE_TRANSIENT)) != SQLITE_OK) {
-			exceptions::throw_sqlite_error(hresult);
+			exceptions::throw_sqlite_error(hresult, db.sql());
 		}
 
 		++db._inx;
@@ -782,7 +798,7 @@ namespace sqlite {
 		}
 		int hresult;
 		if((hresult = sqlite3_bind_null(db._stmt.get(), db._inx)) != SQLITE_OK) {
-			exceptions::throw_sqlite_error(hresult);
+			exceptions::throw_sqlite_error(hresult, db.sql());
 		}
 
 		++db._inx;
@@ -823,7 +839,7 @@ namespace sqlite {
 		}
 		int hresult;
 		if((hresult = sqlite3_bind_null(db._stmt.get(), db._inx)) != SQLITE_OK) {
-			exceptions::throw_sqlite_error(hresult);
+			exceptions::throw_sqlite_error(hresult, db.sql());
 		}
 
 		++db._inx;

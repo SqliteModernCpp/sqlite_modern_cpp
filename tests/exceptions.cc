@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <memory>
 #include <stdexcept>
@@ -17,8 +18,17 @@ int main() {
     // inserting again to produce error
     db << "INSERT INTO person (id,name) VALUES (?,?)" << 1 << "jack";
   } catch (sqlite_exception& e) {
-    cerr << e.get_code() << ": " << e.what() << endl;
+    cerr << e.get_code() << ": " << e.what() << " during "
+         << quoted(e.get_sql()) << endl;
     expception_thrown = true;
+#if SQLITE_VERSION_NUMBER >= 3014000
+    if(e.get_sql() != "INSERT INTO person (id,name) VALUES (1,'jack')") {
+#else
+    if(e.get_sql() != "INSERT INTO person (id,name) VALUES (?,?)") {
+#endif
+      cerr << "Wrong statement failed\n";
+      exit(EXIT_FAILURE);
+    }
   } catch (...) {
     cerr << "Ok, we have our excpetion thrown" << endl;
     expception_thrown = true;
