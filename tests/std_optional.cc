@@ -6,7 +6,7 @@
 using namespace sqlite;
 using namespace std;
 
-#if __has_include(<optional>)
+#ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 void insert(database& db, bool is_null) {
 	int id = 1;
 	std::optional<int> val;
