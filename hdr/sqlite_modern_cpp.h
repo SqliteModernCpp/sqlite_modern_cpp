@@ -405,7 +405,15 @@ namespace sqlite {
 		);
 	}
 	
+	enum class Encoding {
+	  AUTO = SQLITE_ANY,
+	  UTF8 = SQLITE_UTF8,
+	  UTF16 = SQLITE_UTF16
+	};
 	struct sqlite_config {
+    int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+    const char *gVfs = nullptr;
+    Encoding encoding = Encoding::AUTO;
 	};
 
 	class database {
@@ -432,12 +440,23 @@ namespace sqlite {
 		database(std::shared_ptr<sqlite3> db):
 			_db(db) {}
 
-		database(const std::string &db_name, const sqlite_config &config): database(db_name) {
-			(void)config; // Suppress unused warning
+		database(const std::string &db_name, const sqlite_config &config): _db(nullptr) {
+			sqlite3* tmp = nullptr;
+			auto ret = sqlite3_open_v2(db_name.data(), &tmp, config.flags, config.gVfs);
+			_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); }); // this will close the connection eventually when no longer needed.
+			if(ret != SQLITE_OK) exceptions::throw_sqlite_error(ret);
+			if(config.encoding == Encoding::UTF16)
+			  *this << R"(PRAGMA encoding = "UTF-16";)";
 		}
 
-		database(const std::u16string &db_name, const sqlite_config &config): database(db_name) {
-			(void)config; // Suppress unused warning
+		database(const std::u16string &db_name, const sqlite_config &config): _db(nullptr) {
+		  auto db_name_utf8 = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(db_name);
+			sqlite3* tmp = nullptr;
+			auto ret = sqlite3_open_v2(db_name_utf8.data(), &tmp, config.flags, config.gVfs);
+			_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); }); // this will close the connection eventually when no longer needed.
+			if(ret != SQLITE_OK) exceptions::throw_sqlite_error(ret);
+			if(config.encoding != Encoding::UTF8)
+			  *this << R"(PRAGMA encoding = "UTF-16";)";
 		}
 
 		database_binder operator<<(const std::string& sql) {
