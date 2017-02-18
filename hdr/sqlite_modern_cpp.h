@@ -421,26 +421,7 @@ namespace sqlite {
 		std::shared_ptr<sqlite3> _db;
 
 	public:
-		database(std::u16string const & db_name): _db(nullptr) {
-			sqlite3* tmp = nullptr;
-			auto ret = sqlite3_open16(db_name.data(), &tmp);
-			_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); }); // this will close the connection eventually when no longer needed.
-			if(ret != SQLITE_OK) exceptions::throw_sqlite_error(ret);
-			//_db.reset(tmp, sqlite3_close); // alternative close. (faster?)
-		}
-
-		database(std::string const & db_name): _db(nullptr) {
-			sqlite3* tmp = nullptr;
-			auto ret = sqlite3_open(db_name.data(), &tmp);
-			_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); }); // this will close the connection eventually when no longer needed.
-			if(ret != SQLITE_OK) exceptions::throw_sqlite_error(ret);
-			//_db.reset(tmp, sqlite3_close); // alternative close. (faster?)
-		}
-
-		database(std::shared_ptr<sqlite3> db):
-			_db(db) {}
-
-		database(const std::string &db_name, const sqlite_config &config): _db(nullptr) {
+		database(const std::string &db_name, const sqlite_config &config = {}): _db(nullptr) {
 			sqlite3* tmp = nullptr;
 			auto ret = sqlite3_open_v2(db_name.data(), &tmp, config.flags, config.gVfs);
 			_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); }); // this will close the connection eventually when no longer needed.
@@ -449,7 +430,7 @@ namespace sqlite {
 			  *this << R"(PRAGMA encoding = "UTF-16";)";
 		}
 
-		database(const std::u16string &db_name, const sqlite_config &config): _db(nullptr) {
+		database(const std::u16string &db_name, const sqlite_config &config = {}): _db(nullptr) {
 		  auto db_name_utf8 = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(db_name);
 			sqlite3* tmp = nullptr;
 			auto ret = sqlite3_open_v2(db_name_utf8.data(), &tmp, config.flags, config.gVfs);
@@ -458,6 +439,9 @@ namespace sqlite {
 			if(config.encoding != Encoding::UTF8)
 			  *this << R"(PRAGMA encoding = "UTF-16";)";
 		}
+
+		database(std::shared_ptr<sqlite3> db):
+			_db(db) {}
 
 		database_binder operator<<(const std::string& sql) {
 			return database_binder(_db, sql);
