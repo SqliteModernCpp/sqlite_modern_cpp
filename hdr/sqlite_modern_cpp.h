@@ -814,7 +814,7 @@ namespace sqlite {
 			o.reset();
 		} else {
 			OptionalT v;
-			get_col_from_db(value, v);
+			get_col_from_db(db, inx, v);
 			o = std::move(v);
 		}
 	}
