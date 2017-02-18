@@ -895,8 +895,19 @@ namespace sqlite {
 		) {
 			auto ctxt = static_cast<AggregateCtxt<ContextType>*>(sqlite3_aggregate_context(db, sizeof(AggregateCtxt<ContextType>)));
 			if(!ctxt) return;
-			if(!ctxt->constructed) new(ctxt) AggregateCtxt<ContextType>();
-			step<Count, Functions>(db, count, vals, ctxt->obj);
+			try {
+				if(!ctxt->constructed) new(ctxt) AggregateCtxt<ContextType>();
+			  step<Count, Functions>(db, count, vals, ctxt->obj);
+			} catch(sqlite_exception &e) {
+				sqlite3_result_error_code(db, e.get_code());
+				sqlite3_result_error(db, e.what(), -1);
+			} catch(std::exception &e) {
+				sqlite3_result_error(db, e.what(), -1);
+			} catch(...) {
+				sqlite3_result_error(db, "Unknown error", -1);
+			}
+			if(ctxt && ctxt->constructed)
+			  ctxt->~AggregateCtxt();
 		}
 
 		template<
@@ -941,8 +952,8 @@ namespace sqlite {
 			typename    Functions
 		>
 		inline void final(sqlite3_context* db) {
+			auto ctxt = static_cast<AggregateCtxt<ContextType>*>(sqlite3_aggregate_context(db, sizeof(AggregateCtxt<ContextType>)));
 			try {
-				auto ctxt = static_cast<AggregateCtxt<ContextType>*>(sqlite3_aggregate_context(db, sizeof(AggregateCtxt<ContextType>)));
 				if(!ctxt) return;
 				if(!ctxt->constructed) new(ctxt) AggregateCtxt<ContextType>();
 				store_result_in_db(db,
@@ -955,6 +966,8 @@ namespace sqlite {
 			} catch(...) {
 				sqlite3_result_error(db, "Unknown error", -1);
 			}
+			if(ctxt && ctxt->constructed)
+			  ctxt->~AggregateCtxt();
 		}
 
 		template<
