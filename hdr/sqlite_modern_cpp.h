@@ -405,15 +405,28 @@ namespace sqlite {
 		);
 	}
 	
+	enum class Flags {
+		OPEN_READONLY = SQLITE_OPEN_READONLY,
+		OPEN_READWRITE = SQLITE_OPEN_READWRITE,
+		OPEN_CREATE = SQLITE_OPEN_CREATE,
+		OPEN_NOMUTEX = SQLITE_OPEN_NOMUTEX,
+		OPEN_FULLMUTEX = SQLITE_OPEN_FULLMUTEX,
+		OPEN_SHAREDCACHE = SQLITE_OPEN_SHAREDCACHE,
+		OPEN_PRIVATECACH = SQLITE_OPEN_PRIVATECACHE,
+		OPEN_URI = SQLITE_OPEN_URI
+	};
+	Flags operator|(const Flags& a, const Flags& b) {
+		return static_cast<Flags>(static_cast<int>(a) | static_cast<int>(b));
+	};
 	enum class Encoding {
-	  ANY = SQLITE_ANY,
-	  UTF8 = SQLITE_UTF8,
-	  UTF16 = SQLITE_UTF16
+		ANY = SQLITE_ANY,
+		UTF8 = SQLITE_UTF8,
+		UTF16 = SQLITE_UTF16
 	};
 	struct sqlite_config {
-    int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
-    const char *gVfs = nullptr;
-    Encoding encoding = Encoding::ANY;
+		Flags flags = Flags::OPEN_READWRITE | Flags::OPEN_CREATE;
+		const char *zVfs = nullptr;
+		Encoding encoding = Encoding::ANY;
 	};
 
 	class database {
@@ -423,21 +436,21 @@ namespace sqlite {
 	public:
 		database(const std::string &db_name, const sqlite_config &config = {}): _db(nullptr) {
 			sqlite3* tmp = nullptr;
-			auto ret = sqlite3_open_v2(db_name.data(), &tmp, config.flags, config.gVfs);
+			auto ret = sqlite3_open_v2(db_name.data(), &tmp, static_cast<int>(config.flags), config.zVfs);
 			_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); }); // this will close the connection eventually when no longer needed.
 			if(ret != SQLITE_OK) exceptions::throw_sqlite_error(ret);
 			if(config.encoding == Encoding::UTF16)
-			  *this << R"(PRAGMA encoding = "UTF-16";)";
+				*this << R"(PRAGMA encoding = "UTF-16";)";
 		}
 
 		database(const std::u16string &db_name, const sqlite_config &config = {}): _db(nullptr) {
-		  auto db_name_utf8 = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(db_name);
+			auto db_name_utf8 = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(db_name);
 			sqlite3* tmp = nullptr;
-			auto ret = sqlite3_open_v2(db_name_utf8.data(), &tmp, config.flags, config.gVfs);
+			auto ret = sqlite3_open_v2(db_name_utf8.data(), &tmp, static_cast<int>(config.flags), config.zVfs);
 			_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); }); // this will close the connection eventually when no longer needed.
 			if(ret != SQLITE_OK) exceptions::throw_sqlite_error(ret);
 			if(config.encoding != Encoding::UTF8)
-			  *this << R"(PRAGMA encoding = "UTF-16";)";
+				*this << R"(PRAGMA encoding = "UTF-16";)";
 		}
 
 		database(std::shared_ptr<sqlite3> db):
