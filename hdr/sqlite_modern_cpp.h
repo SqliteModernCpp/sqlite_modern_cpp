@@ -406,14 +406,14 @@ namespace sqlite {
 	}
 	
 	enum class Encoding {
-	  AUTO = SQLITE_ANY,
+	  ANY = SQLITE_ANY,
 	  UTF8 = SQLITE_UTF8,
 	  UTF16 = SQLITE_UTF16
 	};
 	struct sqlite_config {
     int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
     const char *gVfs = nullptr;
-    Encoding encoding = Encoding::AUTO;
+    Encoding encoding = Encoding::ANY;
 	};
 
 	class database {
