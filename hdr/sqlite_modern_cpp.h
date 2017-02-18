@@ -898,6 +898,7 @@ namespace sqlite {
 			try {
 				if(!ctxt->constructed) new(ctxt) AggregateCtxt<ContextType>();
 			  step<Count, Functions>(db, count, vals, ctxt->obj);
+				return;
 			} catch(sqlite_exception &e) {
 				sqlite3_result_error_code(db, e.get_code());
 				sqlite3_result_error(db, e.what(), -1);
@@ -958,7 +959,6 @@ namespace sqlite {
 				if(!ctxt->constructed) new(ctxt) AggregateCtxt<ContextType>();
 				store_result_in_db(db,
 						static_cast<Functions*>(sqlite3_user_data(db))->second(ctxt->obj));
-				return;
 			} catch(sqlite_exception &e) {
 				sqlite3_result_error_code(db, e.get_code());
 				sqlite3_result_error(db, e.what(), -1);
