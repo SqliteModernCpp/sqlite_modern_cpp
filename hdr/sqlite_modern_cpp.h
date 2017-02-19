@@ -219,9 +219,15 @@ namespace sqlite {
 			reset();
 		}
 
+#ifdef _MSC_VER
 		sqlite3_stmt* _prepare(const std::u16string& sql) {
-      return _prepare(std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(sql));
+			return _prepare(std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>().to_bytes(reinterpret_cast<const wchar_t*>(sql.c_str())));
 		}
+#else
+		sqlite3_stmt* _prepare(const std::u16string& sql) {
+			return _prepare(std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(sql));
+		}
+#endif
 
 		sqlite3_stmt* _prepare(const std::string& sql) {
 			int hresult;
