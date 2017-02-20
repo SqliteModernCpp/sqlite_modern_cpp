@@ -77,6 +77,23 @@ int main() {
 }
 ```
 
+Additional flags
+----
+You can pass additional open flags to SQLite by using a config object:
+
+```c++
+		sqlite_config config;
+		config.flags = Flags::OPEN_READONLY
+		database db("some_db", config);
+		int a;
+		// Now you can only read from db
+		auto ps = db << "select a from table where something = ? and anotherthing = ?" >> a;
+		config.flags = Flags::OPEN_READWRITE | Flags::OPEN_CREATE; // This is the default
+		config.encoding = Encoding::UTF16; // The encoding is respected only if you create a new database
+		database db2("some_db2", config);
+		// If some_db2 didn't exists before, it will be created with UTF-16 encoding.
+```
+
 Prepared Statements
 ----
 It is possible to retain and reuse statments this will keep the query plan and in case of an complex query or many uses might increase the performance significantly.
