@@ -84,7 +84,7 @@ int main()
 			db << "INSERT INTO foo VALUES (?)" << "hello";
 		}
 		{
-			cfg.flags = sqlite::Flags::OPEN_READONLY;
+			cfg.flags = sqlite::OpenFlags::READONLY;
 			database db(file.fname, cfg);
 
 			string str;

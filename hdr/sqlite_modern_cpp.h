@@ -405,18 +405,18 @@ namespace sqlite {
 		);
 	}
 	
-	enum class Flags {
-		OPEN_READONLY = SQLITE_OPEN_READONLY,
-		OPEN_READWRITE = SQLITE_OPEN_READWRITE,
-		OPEN_CREATE = SQLITE_OPEN_CREATE,
-		OPEN_NOMUTEX = SQLITE_OPEN_NOMUTEX,
-		OPEN_FULLMUTEX = SQLITE_OPEN_FULLMUTEX,
-		OPEN_SHAREDCACHE = SQLITE_OPEN_SHAREDCACHE,
-		OPEN_PRIVATECACH = SQLITE_OPEN_PRIVATECACHE,
-		OPEN_URI = SQLITE_OPEN_URI
+	enum class OpenFlags {
+		READONLY = SQLITE_OPEN_READONLY,
+		READWRITE = SQLITE_OPEN_READWRITE,
+		CREATE = SQLITE_OPEN_CREATE,
+		NOMUTEX = SQLITE_OPEN_NOMUTEX,
+		FULLMUTEX = SQLITE_OPEN_FULLMUTEX,
+		SHAREDCACHE = SQLITE_OPEN_SHAREDCACHE,
+		PRIVATECACH = SQLITE_OPEN_PRIVATECACHE,
+		URI = SQLITE_OPEN_URI
 	};
-	Flags operator|(const Flags& a, const Flags& b) {
-		return static_cast<Flags>(static_cast<int>(a) | static_cast<int>(b));
+	OpenFlags operator|(const OpenFlags& a, const OpenFlags& b) {
+		return static_cast<OpenFlags>(static_cast<int>(a) | static_cast<int>(b));
 	};
 	enum class Encoding {
 		ANY = SQLITE_ANY,
@@ -424,7 +424,7 @@ namespace sqlite {
 		UTF16 = SQLITE_UTF16
 	};
 	struct sqlite_config {
-		Flags flags = Flags::OPEN_READWRITE | Flags::OPEN_CREATE;
+		OpenFlags flags = OpenFlags::READWRITE | OpenFlags::CREATE;
 		const char *zVfs = nullptr;
 		Encoding encoding = Encoding::ANY;
 	};
