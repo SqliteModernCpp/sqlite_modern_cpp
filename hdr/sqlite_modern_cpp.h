@@ -16,6 +16,12 @@
 #endif
 #endif
 
+#ifdef __has_include
+#if __cplusplus > 201402 && __has_include(<variant>)
+#define MODERN_SQLITE_STD_VARIANT_SUPPORT
+#endif
+#endif
+
 #ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 #include <optional>
 #endif
@@ -895,6 +901,14 @@ namespace sqlite {
 		}
 	}
 #endif
+
+	template <typename ...Args> inline database_binder& operator <<(database_binder& db, const std::variant<Args...>& val) {
+    std::visit([&](auto &&opt) {db << std::forward<decltype(opt)>(opt);}, val);
+		return db;
+	}
+	template <typename ...Args> inline void store_result_in_db(sqlite3_context* db, const std::variant<Args...>& val) {
+    std::visit([&](auto &&opt) {store_result_in_db(db, std::forward<decltype(opt)>(opt));}, val);
+	}
 
 	// Some ppl are lazy so we have a operator for proper prep. statemant handling.
 	void inline operator++(database_binder& db, int) { db.execute(); db.reset(); }
