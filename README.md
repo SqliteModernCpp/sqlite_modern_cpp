@@ -342,9 +342,8 @@ If your columns may have flexible types, you can use C++17's `std::variant` to e
 
 ```c++
 db << "CREATE TABLE tbl (id integer, data);";
-db << "INSERT INTO tbl VALUES (?, ?, ?);" << 1 << vector<int> { 1, 2, 3};
-unique_ptr<string> ptr_null; // you can even bind empty unique_ptr<T>
-db << "INSERT INTO tbl VALUES (?, ?, ?);" << 2 << 2.5;
+db << "INSERT INTO tbl VALUES (?, ?);" << 1 << vector<int> { 1, 2, 3};
+db << "INSERT INTO tbl VALUES (?, ?);" << 2 << 2.5;
 
 db << "select data from tbl where id = 1"
 		>> [](std::variant<vector<int>, double> data) {
@@ -355,7 +354,7 @@ db << "select data from tbl where id = 1"
 			for(auto i : get<vector<int>>(data)) cout << i << ","; cout << endl;
 		};
 
-db << "select age,name,img from tbl where id = 2"
+db << "select data from tbl where id = 2"
 		>> [](std::variant<vector<int>, double> data) {
 			if(data.index() != 2) {
 				cerr << "ERROR: we expected a real number" << std::endl;

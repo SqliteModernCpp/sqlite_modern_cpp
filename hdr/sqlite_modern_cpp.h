@@ -1065,7 +1065,7 @@ namespace sqlite {
 
 		template<
 			std::size_t Count,
-			typename		Function,
+			typename    Function,
 			typename... Values
 		>
 		inline typename std::enable_if<(sizeof...(Values) == Count), void>::type scalar(
