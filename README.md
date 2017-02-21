@@ -280,20 +280,18 @@ int main() {
 }
 ```
 
-NULL values (DEPRICATED)
+NULL values (C++17)
 ----
-**Note: this option is deprecated and will be removed in future versions.**
-You can enable boost support by defining _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT before importing sqlite_modern_cpp header.
+You can use `std::optional<T>` as an alternative for `std::unique_ptr<T>` to work with NULL values.
 
 ```c++
-	#define _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
 	#include <sqlite_modern_cpp.h>
 
 	struct User {
 		long long _id;
-		boost::optional<int> age;
-		boost::optional<string> name;
-		boost::optional<real> weight;
+		std::optional<int> age;
+		std::optional<string> name;
+		std::optional<real> weight;
 	};
 
 	{
@@ -317,9 +315,9 @@ You can enable boost support by defining _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT b
 		db << "select _id,age,name,weight from user where age > ? ;"
 			<< 18
 			>> [&](long long id,
-				boost::optional<int> age,
-				boost::optional<string> name
-				boost::optional<real> weight) {
+				std::optional<int> age,
+				std::optional<string> name
+				std::optional<real> weight) {
 
 			User user;
 			user._id = id;
@@ -335,6 +333,10 @@ You can enable boost support by defining _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT b
 		};
 	}
 ```
+
+If you do not have C++17 support, you can use boost optional instead by defining `_MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT` before importing the `sqlite_modern_cpp` header.
+
+**Note: boost support is deprecated and will be removed in future versions.**
 
 Errors
 ----
