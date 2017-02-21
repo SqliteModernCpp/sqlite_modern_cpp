@@ -1,7 +1,6 @@
 // Fixing https://github.com/aminroosta/sqlite_modern_cpp/issues/63
 #include <iostream>
 #include <cstdlib>
-#include <unistd.h>
 #include <sqlite_modern_cpp.h>
 #include <memory>
 using namespace  sqlite;

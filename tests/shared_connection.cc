@@ -1,6 +1,6 @@
 #include <iostream>
+#include <cstdio>
 #include <cstdlib>
-#include <unistd.h>
 #include <sqlite_modern_cpp.h>
 
 using namespace  sqlite;
@@ -9,16 +9,10 @@ using namespace std;
 struct TmpFile {
 	string fname;
 
-	TmpFile() {
-		char f[] = "/tmp/sqlite_modern_cpp_test_XXXXXX";
-		int fid = mkstemp(f);
-		close(fid);
-
-		fname = f;
-	}
+	TmpFile(): fname(tmpnam(nullptr)) {}
 
 	~TmpFile() {
-		unlink(fname.c_str());
+		remove(fname.c_str());
 	}
 };
 

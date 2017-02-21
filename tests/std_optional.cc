@@ -1,4 +1,3 @@
-#include <unistd.h>
 #include <iostream>
 
 #include <sqlite_modern_cpp.h>
@@ -26,27 +25,9 @@ void select(database& db, bool should_be_null) {
 	};
 }
 
-struct TmpFile {
-	string fname;
-
-	TmpFile() {
-		char f[] = "/tmp/sqlite_modern_cpp_test_XXXXXX";
-		int fid = mkstemp(f);
-		close(fid);
-
-		fname = f;
-	}
-
-	~TmpFile() {
-		unlink(fname.c_str());
-	}
-};
-
 int main() {
 	try {
-		// creates a database file 'dbfile.db' if it does not exists.
-		TmpFile file;
-		database db(file.fname);
+		database db(":memory:");
 
 		db << "drop table if exists test";
 		db <<

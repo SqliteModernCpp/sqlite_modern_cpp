@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstdio>
 
 #define _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
 #include <sqlite_modern_cpp.h>
@@ -28,16 +29,10 @@ void select(database& db, bool should_be_null) {
 struct TmpFile {
 	string fname;
 
-	TmpFile() {
-		char f[] = "/tmp/sqlite_modern_cpp_test_XXXXXX";
-		int fid = mkstemp(f);
-		close(fid);
-
-		fname = f;
-	}
+	TmpFile(): fname(tmpnam(nullptr)) {}
 
 	~TmpFile() {
-		unlink(fname.c_str());
+		remove(fname.c_str());
 	}
 };
 

@@ -1,6 +1,5 @@
 #include <iostream>
 #include <cstdlib>
-#include <unistd.h>
 #include <vector>
 #include <string>
 #include <sqlite_modern_cpp.h>
