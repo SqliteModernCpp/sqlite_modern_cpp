@@ -16,6 +16,12 @@
 #endif
 #endif
 
+#ifdef __has_include
+#if __cplusplus > 201402 && __has_include(<variant>)
+#define MODERN_SQLITE_STD_VARIANT_SUPPORT
+#endif
+#endif
+
 #ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 #include <optional>
 #endif
@@ -36,10 +42,10 @@ namespace sqlite {
 		sqlite_exception(const char* msg, std::string sql, int code = -1): runtime_error(msg), code(code), sql(sql) {}
 		sqlite_exception(int code, std::string sql): runtime_error(sqlite3_errstr(code)), code(code), sql(sql) {}
 		int get_code() {return code;}
-    std::string get_sql() {return sql;}
+		std::string get_sql() {return sql;}
 	private:
 		int code;
-    std::string sql;
+		std::string sql;
 	};
 
 	namespace exceptions {
@@ -110,7 +116,13 @@ namespace sqlite {
 			else throw sqlite_exception(error_code, sql);
 		}
 	}
+}
 
+#ifdef MODERN_SQLITE_STD_VARIANT_SUPPORT
+#include "sqlite_modern_cpp/utility/variant.h"
+#endif
+
+namespace sqlite {
 	class database;
 	class database_binder;
 
@@ -161,19 +173,19 @@ namespace sqlite {
 			
 		}
 		
-    std::string sql() {
+		std::string sql() {
 #if SQLITE_VERSION_NUMBER >= 3014000
-      auto sqlite_deleter = [](void *ptr) {sqlite3_free(ptr);};
-      std::unique_ptr<char, decltype(sqlite_deleter)> str(sqlite3_expanded_sql(_stmt.get()), sqlite_deleter);
-      return str ? str.get() : original_sql();
+			auto sqlite_deleter = [](void *ptr) {sqlite3_free(ptr);};
+			std::unique_ptr<char, decltype(sqlite_deleter)> str(sqlite3_expanded_sql(_stmt.get()), sqlite_deleter);
+			return str ? str.get() : original_sql();
 #else
-      return original_sql();
+			return original_sql();
 #endif
-    }
+		}
 
-    std::string original_sql() {
-      return sqlite3_sql(_stmt.get());
-    }
+		std::string original_sql() {
+			return sqlite3_sql(_stmt.get());
+		}
 
 		void used(bool state) {
 			if(execution_started == true && state == true) {
@@ -258,6 +270,13 @@ namespace sqlite {
 			|| std::is_integral<Type>::value
 			|| std::is_same<sqlite_int64, Type>::value
 		> { };
+#ifdef MODERN_SQLITE_STD_VARIANT_SUPPORT
+		template <typename ...Args>
+		struct is_sqlite_value< std::variant<Args...> > : public std::integral_constant<
+			bool,
+			true
+		> { };
+#endif
 
 
 		template<typename T> friend database_binder& operator <<(database_binder& db, const T& val);
@@ -269,6 +288,10 @@ namespace sqlite {
 		friend database_binder& operator <<(database_binder& db, std::nullptr_t);
 		template<typename T> friend database_binder& operator <<(database_binder& db, const std::unique_ptr<T>& val);
 		template<typename T> friend void get_col_from_db(database_binder& db, int inx, std::unique_ptr<T>& val);
+#ifdef MODERN_SQLITE_STD_VARIANT_SUPPORT
+		template<typename ...Args> friend database_binder& operator <<(database_binder& db, const std::variant<Args...>& val);
+		template<typename ...Args> friend void get_col_from_db(database_binder& db, int inx, std::variant<Args...>& val);
+#endif
 		template<typename T> friend T operator++(database_binder& db, int);
 		// Overload instead of specializing function templates (http://www.gotw.ca/publications/mill17.htm)
 		friend database_binder& operator<<(database_binder& db, const int& val);
@@ -901,6 +924,28 @@ namespace sqlite {
 	}
 #endif
 
+#ifdef MODERN_SQLITE_STD_VARIANT_SUPPORT
+	template <typename ...Args> inline database_binder& operator <<(database_binder& db, const std::variant<Args...>& val) {
+		std::visit([&](auto &&opt) {db << std::forward<decltype(opt)>(opt);}, val);
+		return db;
+	}
+	template <typename ...Args> inline void store_result_in_db(sqlite3_context* db, const std::variant<Args...>& val) {
+		std::visit([&](auto &&opt) {store_result_in_db(db, std::forward<decltype(opt)>(opt));}, val);
+	}
+	template <typename ...Args> inline void get_col_from_db(database_binder& db, int inx, std::variant<Args...>& val) {
+		utility::variant_select<Args...>(sqlite3_column_type(db._stmt.get(), inx))([&](auto v) {
+			get_col_from_db(db, inx, v);
+			val = std::move(v);
+		});
+	}
+	template <typename ...Args> inline void get_val_from_db(sqlite3_value *value, std::variant<Args...>& val) {
+		utility::variant_select<Args...>(sqlite3_value_type(value))([&](auto v) {
+			get_val_from_db(value, v);
+			val = std::move(v);
+		});
+	}
+#endif
+
 	// Some ppl are lazy so we have a operator for proper prep. statemant handling.
 	void inline operator++(database_binder& db, int) { db.execute(); db.reset(); }
 
@@ -928,7 +973,7 @@ namespace sqlite {
 			if(!ctxt) return;
 			try {
 				if(!ctxt->constructed) new(ctxt) AggregateCtxt<ContextType>();
-			  step<Count, Functions>(db, count, vals, ctxt->obj);
+				step<Count, Functions>(db, count, vals, ctxt->obj);
 				return;
 			} catch(sqlite_exception &e) {
 				sqlite3_result_error_code(db, e.get_code());
@@ -939,7 +984,7 @@ namespace sqlite {
 				sqlite3_result_error(db, "Unknown error", -1);
 			}
 			if(ctxt && ctxt->constructed)
-			  ctxt->~AggregateCtxt();
+				ctxt->~AggregateCtxt();
 		}
 
 		template<
@@ -999,7 +1044,7 @@ namespace sqlite {
 				sqlite3_result_error(db, "Unknown error", -1);
 			}
 			if(ctxt && ctxt->constructed)
-			  ctxt->~AggregateCtxt();
+				ctxt->~AggregateCtxt();
 		}
 
 		template<

@@ -338,6 +338,40 @@ If you do not have C++17 support, you can use boost optional instead by defining
 
 **Note: boost support is deprecated and will be removed in future versions.**
 
+Variant type support (C++17)
+----
+If your columns may have flexible types, you can use C++17's `std::variant` to extract the value.
+
+```c++
+db << "CREATE TABLE tbl (id integer, data);";
+db << "INSERT INTO tbl VALUES (?, ?);" << 1 << vector<int> { 1, 2, 3};
+db << "INSERT INTO tbl VALUES (?, ?);" << 2 << 2.5;
+
+db << "select data from tbl where id = 1"
+		>> [](std::variant<vector<int>, double> data) {
+			if(data.index() != 1) {
+				cerr << "ERROR: we expected a blob" << std::endl;
+			}
+
+			for(auto i : get<vector<int>>(data)) cout << i << ","; cout << endl;
+		};
+
+db << "select data from tbl where id = 2"
+		>> [](std::variant<vector<int>, double> data) {
+			if(data.index() != 2) {
+				cerr << "ERROR: we expected a real number" << std::endl;
+			}
+
+			cout << get<double>(data) << endl;
+		};
+```
+
+If you read a specific type and this type does not match the actual type in the SQlite database, yor data will be converted.
+This does not happen if you use a `variant`.
+If the `variant` does an alternative of the same value type, an `mismatch` exception will be thrown.
+The value types are NULL, integer, real number, text and BLOB.
+To support all possible values, you can use `variant<nullptr_t, sqlite_int64, double, string, vector<char>`.
+
 Errors
 ----
 
