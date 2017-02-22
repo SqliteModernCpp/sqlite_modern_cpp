@@ -75,6 +75,28 @@ int main() {
 			(pps4 << test << test << test)++;
 		}
 
+		{
+			auto prep = db << "select ?";
+
+			prep << 5;
+
+			prep.execute();
+			try {
+				prep.execute();
+			} catch(sqlite_exception& ex) {
+				cout << ex.what() << " " << ex.get_sql() << "\n";
+				if(std::string(ex.what()) != "Already used statement executed again! Please reset() first!") {
+					exit(EXIT_FAILURE);
+				}
+			}
+
+			prep.reset();
+
+			prep << 6;
+			prep.execute();
+
+		}
+
 
 	} catch(sqlite_exception e) {
 		cout << "Unexpected error " << e.what() << endl;
