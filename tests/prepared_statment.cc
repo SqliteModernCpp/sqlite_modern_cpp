@@ -14,10 +14,12 @@ int main() {
 		int test = 4;
 		pps << test; // set a bound var
 
-		pps >> test; // execute and reset statment
+		pps >> test; // execute statement
+
+		pps.reset();
 
 		pps << 4; // bind a rvalue
-		pps >> test; // and execute again
+		pps++; // and execute and reset
 
 		pps << 8 >> test;
 
@@ -83,11 +85,11 @@ int main() {
 			prep.execute();
 			try {
 				prep.execute();
-			} catch(sqlite_exception& ex) {
-				cout << ex.what() << " " << ex.get_sql() << "\n";
-				if(std::string(ex.what()) != "Already used statement executed again! Please reset() first!") {
-					exit(EXIT_FAILURE);
-				}
+				exit(EXIT_FAILURE);
+			} catch(exceptions::reexecution& ex) {
+				// Thats ok here
+			} catch(...) {
+				exit(EXIT_FAILURE);
 			}
 
 			prep.reset();

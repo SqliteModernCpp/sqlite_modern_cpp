@@ -78,6 +78,7 @@ namespace sqlite {
 		//Some additional errors are here for the C++ interface
 		class more_rows: public sqlite_exception { using sqlite_exception::sqlite_exception; };
 		class no_rows: public sqlite_exception { using sqlite_exception::sqlite_exception; };
+		class reexecution: public sqlite_exception { using sqlite_exception::sqlite_exception; }; // Prepared statements need to be reset before calling them again 
 
 		static void throw_sqlite_error(const int& error_code, const std::string &sql = "") {
 			if(error_code == SQLITE_ERROR) throw exceptions::error(error_code, sql);
@@ -176,7 +177,7 @@ namespace sqlite {
 
 		void used(bool state) {
 			if(execution_started == true && state == true) {
-				throw sqlite_exception("Already used statement executed again! Please reset() first!",sql());
+				throw exceptions::reexecution("Already used statement executed again! Please reset() first!",sql());
 			}
 			execution_started = state; 
 		}
