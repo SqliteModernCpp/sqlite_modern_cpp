@@ -78,6 +78,7 @@ namespace sqlite {
 		//Some additional errors are here for the C++ interface
 		class more_rows: public sqlite_exception { using sqlite_exception::sqlite_exception; };
 		class no_rows: public sqlite_exception { using sqlite_exception::sqlite_exception; };
+		class reexecution: public sqlite_exception { using sqlite_exception::sqlite_exception; }; // Prepared statements need to be reset before calling them again 
 
 		static void throw_sqlite_error(const int& error_code, const std::string &sql = "") {
 			if(error_code == SQLITE_ERROR) throw exceptions::error(error_code, sql);
@@ -150,13 +151,14 @@ namespace sqlite {
 
 		void execute() {
 			int hresult;
+			used(true); /* prevent from executing again when goes out of scope */
 
 			while((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {}
 
 			if(hresult != SQLITE_DONE) {
 				exceptions::throw_sqlite_error(hresult, sql());
 			}
-			used(true); /* prevent from executing again when goes out of scope */
+			
 		}
 		
     std::string sql() {
@@ -173,7 +175,12 @@ namespace sqlite {
       return sqlite3_sql(_stmt.get());
     }
 
-		void used(bool state) { execution_started = state; }
+		void used(bool state) {
+			if(execution_started == true && state == true) {
+				throw exceptions::reexecution("Already used statement executed again! Please reset() first!",sql());
+			}
+			execution_started = state; 
+		}
 		bool used() const { return execution_started; }
 
 	private:
@@ -186,8 +193,8 @@ namespace sqlite {
 		bool execution_started = false;
 
 		void _extract(std::function<void(void)> call_back) {
-			execution_started = true;
 			int hresult;
+			used(true);
 
 			while((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {
 				call_back();
@@ -196,12 +203,11 @@ namespace sqlite {
 			if(hresult != SQLITE_DONE) {
 				exceptions::throw_sqlite_error(hresult, sql());
 			}
-			reset();
 		}
 
 		void _extract_single_value(std::function<void(void)> call_back) {
-			execution_started = true;
 			int hresult;
+			used(true);
 
 			if((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {
 				call_back();
@@ -216,7 +222,6 @@ namespace sqlite {
 			if(hresult != SQLITE_DONE) {
 				exceptions::throw_sqlite_error(hresult, sql());
 			}
-			reset();
 		}
 
 #ifdef _MSC_VER
@@ -307,7 +312,7 @@ namespace sqlite {
 		~database_binder() noexcept(false) {
 			/* Will be executed if no >>op is found, but not if an exception
 			is in mid flight */
-			if(!execution_started && !_has_uncaught_exception && _stmt) {
+			if(!used() && !_has_uncaught_exception && _stmt) {
 				execute();
 			}
 		}

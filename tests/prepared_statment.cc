@@ -14,10 +14,12 @@ int main() {
 		int test = 4;
 		pps << test; // set a bound var
 
-		pps >> test; // execute and reset statment
+		pps >> test; // execute statement
+
+		pps.reset();
 
 		pps << 4; // bind a rvalue
-		pps >> test; // and execute again
+		pps++; // and execute and reset
 
 		pps << 8 >> test;
 
@@ -73,6 +75,28 @@ int main() {
 			(pps4 << 1 << 1 << test)++;
 			(pps4 << 1 << 1 << 1)++;
 			(pps4 << test << test << test)++;
+		}
+
+		{
+			auto prep = db << "select ?";
+
+			prep << 5;
+
+			prep.execute();
+			try {
+				prep.execute();
+				exit(EXIT_FAILURE);
+			} catch(exceptions::reexecution& ex) {
+				// Thats ok here
+			} catch(...) {
+				exit(EXIT_FAILURE);
+			}
+
+			prep.reset();
+
+			prep << 6;
+			prep.execute();
+
 		}
 
 
