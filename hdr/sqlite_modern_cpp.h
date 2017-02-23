@@ -443,7 +443,7 @@ namespace sqlite {
 		PRIVATECACH = SQLITE_OPEN_PRIVATECACHE,
 		URI = SQLITE_OPEN_URI
 	};
-	OpenFlags operator|(const OpenFlags& a, const OpenFlags& b) {
+	inline OpenFlags operator|(const OpenFlags& a, const OpenFlags& b) {
 		return static_cast<OpenFlags>(static_cast<int>(a) | static_cast<int>(b));
 	};
 	enum class Encoding {
