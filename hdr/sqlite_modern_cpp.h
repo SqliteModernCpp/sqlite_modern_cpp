@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+#include <cctype>
 #include <string>
 #include <functional>
 #include <stdexcept>
@@ -85,10 +87,11 @@ namespace sqlite {
 		class more_rows: public sqlite_exception { using sqlite_exception::sqlite_exception; };
 		class no_rows: public sqlite_exception { using sqlite_exception::sqlite_exception; };
 		class reexecution: public sqlite_exception { using sqlite_exception::sqlite_exception; }; // Prepared statements need to be reset before calling them again 
+		class more_statements: public sqlite_exception { using sqlite_exception::sqlite_exception; }; // Prepared statements can only contain one statement
 
 		static void throw_sqlite_error(const int& error_code, const std::string &sql = "") {
 			if(error_code == SQLITE_ERROR) throw exceptions::error(error_code, sql);
-			else if(error_code == SQLITE_INTERNAL) throw exceptions::internal  (error_code, sql);
+			else if(error_code == SQLITE_INTERNAL) throw exceptions::internal(error_code, sql);
 			else if(error_code == SQLITE_PERM) throw exceptions::perm(error_code, sql);
 			else if(error_code == SQLITE_ABORT) throw exceptions::abort(error_code, sql);
 			else if(error_code == SQLITE_BUSY) throw exceptions::busy(error_code, sql);
@@ -249,8 +252,11 @@ namespace sqlite {
 		sqlite3_stmt* _prepare(const std::string& sql) {
 			int hresult;
 			sqlite3_stmt* tmp = nullptr;
-			hresult = sqlite3_prepare_v2(_db.get(), sql.data(), -1, &tmp, nullptr);
-			if((hresult) != SQLITE_OK) exceptions::throw_sqlite_error(hresult, sql);
+			const char *remaining;
+			hresult = sqlite3_prepare_v2(_db.get(), sql.data(), -1, &tmp, &remaining);
+			if(hresult != SQLITE_OK) exceptions::throw_sqlite_error(hresult, sql);
+			if(!std::all_of(remaining, sql.data() + sql.size(), [](char ch) {return std::isblank(ch);}))
+				throw exceptions::more_statements("Multiple semicolon separated statements are unsupported", sql);
 			return tmp;
 		}
 
@@ -296,7 +302,7 @@ namespace sqlite {
 		// Overload instead of specializing function templates (http://www.gotw.ca/publications/mill17.htm)
 		friend database_binder& operator<<(database_binder& db, const int& val);
 		friend void get_col_from_db(database_binder& db, int inx, int& val);
-		friend database_binder& operator <<(database_binder& db, const sqlite_int64&  val);
+		friend database_binder& operator <<(database_binder& db, const sqlite_int64& val);
 		friend void get_col_from_db(database_binder& db, int inx, sqlite3_int64& i);
 		friend database_binder& operator <<(database_binder& db, const float& val);
 		friend void get_col_from_db(database_binder& db, int inx, float& f);

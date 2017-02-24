@@ -77,6 +77,8 @@ int main() {
 }
 ```
 
+You can not execute multiple statements separated by semicolons in one go.
+
 Additional flags
 ----
 You can pass additional open flags to SQLite by using a config object:
