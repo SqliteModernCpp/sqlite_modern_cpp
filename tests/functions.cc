@@ -5,6 +5,9 @@
 using namespace  sqlite;
 using namespace std;
 
+int add_integers(int i, int j) {
+	return i+j;
+}
 int main()
 {
 	try
@@ -13,7 +16,7 @@ int main()
 
     db.define("my_new_concat", [](std::string i, std::string j) {return i+j;});
     db.define("my_new_concat", [](std::string i, std::string j, std::string k) {return i+j+k;});
-    db.define("add_integers", [](int i, int j) {return i+j;});
+    db.define("add_integers", &add_integers);
 		std::string test1, test3;
 		int test2 = 0;
 		db << "select my_new_concat('Hello ','world!')" >> test1;
