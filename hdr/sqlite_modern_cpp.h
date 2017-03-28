@@ -1174,4 +1174,9 @@ namespace sqlite {
 			}
 		}
 	}
+
+	template<class ...T>
+	auto as(database_binder &binder) { return row_view<T...>(binder); }
+	template<class ...T>
+	auto as(database_binder&&binder) { return owning_row_view<T...>(std::move(binder)); }
 }
