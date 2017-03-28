@@ -43,8 +43,8 @@ namespace sqlite {
 	public:
 		sqlite_exception(const char* msg, std::string sql, int code = -1): runtime_error(msg), code(code), sql(sql) {}
 		sqlite_exception(int code, std::string sql): runtime_error(sqlite3_errstr(code)), code(code), sql(sql) {}
-		int get_code() {return code;}
-		std::string get_sql() {return sql;}
+		int get_code() const {return code;}
+		std::string get_sql() const {return sql;}
 	private:
 		int code;
 		std::string sql;
