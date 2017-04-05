@@ -285,8 +285,6 @@ namespace sqlite {
 #endif
 
 
-		template<typename T> friend database_binder& operator <<(database_binder& db, const T& val);
-		template<typename T> friend void get_col_from_db(database_binder& db, int inx, T& val);
 		/* for vector<T, A> support */
 		template<typename T, typename A> friend database_binder& operator <<(database_binder& db, const std::vector<T, A>& val);
 		template<typename T, typename A> friend void get_col_from_db(database_binder& db, int inx, std::vector<T, A>& val);
@@ -848,6 +846,29 @@ namespace sqlite {
 	 inline void store_result_in_db(sqlite3_context* db, const std::u16string& val) {
 		 sqlite3_result_text16(db, val.data(), -1, SQLITE_TRANSIENT);
 	}
+
+	// Other integer types
+	 template<class Integral, class = typename std::enable_if<std::is_integral<Integral>::value>::type>
+	 inline database_binder& operator <<(database_binder& db, const Integral& val) {
+		return db << static_cast<sqlite3_int64>(val);
+	}
+	 template<class Integral, class = std::enable_if<std::is_integral<Integral>::type>>
+	 inline void store_result_in_db(sqlite3_context* db, const Integral& val) {
+		 store_result_in_db(db, val);
+	}
+	 template<class Integral, class = typename std::enable_if<std::is_integral<Integral>::value>::type>
+	 inline void get_col_from_db(database_binder& db, int inx, Integral& val) {
+		sqlite3_int64 i;
+		get_col_from_db(db, inx, i);
+		val = i;
+	}
+	 template<class Integral, class = typename std::enable_if<std::is_integral<Integral>::value>::type>
+	 inline void get_val_from_db(sqlite3_value *value, Integral& val) {
+		sqlite3_int64 i;
+		get_val_from_db(value, i);
+		val = i;
+	}
+
 	// std::optional support for NULL values
 #ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 	template <typename OptionalT> inline database_binder& operator <<(database_binder& db, const std::optional<OptionalT>& val) {
