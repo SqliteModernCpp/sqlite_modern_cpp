@@ -854,7 +854,7 @@ namespace sqlite {
 	}
 	 template<class Integral, class = std::enable_if<std::is_integral<Integral>::type>>
 	 inline void store_result_in_db(sqlite3_context* db, const Integral& val) {
-		 store_result_in_db(db, val);
+		 store_result_in_db(db, static_cast<sqlite3_int64>(val));
 	}
 	 template<class Integral, class = typename std::enable_if<std::is_integral<Integral>::value>::type>
 	 inline void get_col_from_db(database_binder& db, int inx, Integral& val) {
