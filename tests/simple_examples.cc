@@ -29,7 +29,7 @@ int main()
 		db << "INSERT INTO foo VALUES (?, ?)" << 2 << "world";
 
 		string str;
-		db << "SELECT b from FOO where a=?;" << 2 >> str;
+		db << "SELECT b from FOO where a=?;" << 2L >> str;
 
 		if(str != "world")
 		{
@@ -38,7 +38,7 @@ int main()
 		}
 
 		std::string sql("select 1+1");
-		int test = 0;
+		long test = 0;
 		db << sql >> test;
 		
 		if(test != 2) exit(EXIT_FAILURE);
