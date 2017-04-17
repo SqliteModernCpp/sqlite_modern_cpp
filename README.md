@@ -447,6 +447,6 @@ Pull requests are welcome :wink:
 - Nuget (TODO [nuget.org](https://www.nuget.org/))
 - Conan (TODO [conan.io](https://conan.io/))
 
-##License
+## License
 
 MIT license - [http://www.opensource.org/licenses/mit-license.php](http://www.opensource.org/licenses/mit-license.php)
