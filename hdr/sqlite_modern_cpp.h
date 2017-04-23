@@ -56,32 +56,10 @@ namespace sqlite {
 		//SQLITE_OK, SQLITE_NOTICE, SQLITE_WARNING, SQLITE_ROW, SQLITE_DONE
 		//
 		//Note these names are exact matches to the names of the SQLITE error codes.
-		class error: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class internal: public sqlite_exception{ using sqlite_exception::sqlite_exception; };
-		class perm: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class abort: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class busy: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class locked: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class nomem: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class readonly: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class interrupt: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class ioerr: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class corrupt: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class notfound: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class full: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class cantopen: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class protocol: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class empty: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class schema: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class toobig: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class constraint: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class mismatch: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class misuse: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class nolfs: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class auth: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class format: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class range: public sqlite_exception { using sqlite_exception::sqlite_exception; };
-		class notadb: public sqlite_exception { using sqlite_exception::sqlite_exception; };
+#define SQLITE_MODERN_CPP_ERROR_CODE(NAME,name,derived) \
+		class name: public sqlite_exception { using sqlite_exception::sqlite_exception; };
+#include "sqlite_modern_cpp/lists/error_codes.h"
+#undef SQLITE_MODERN_CPP_ERROR_CODE
 
 		//Some additional errors are here for the C++ interface
 		class more_rows: public sqlite_exception { using sqlite_exception::sqlite_exception; };
@@ -90,33 +68,13 @@ namespace sqlite {
 		class more_statements: public sqlite_exception { using sqlite_exception::sqlite_exception; }; // Prepared statements can only contain one statement
 
 		static void throw_sqlite_error(const int& error_code, const std::string &sql = "") {
-			if(error_code == SQLITE_ERROR) throw exceptions::error(error_code, sql);
-			else if(error_code == SQLITE_INTERNAL) throw exceptions::internal(error_code, sql);
-			else if(error_code == SQLITE_PERM) throw exceptions::perm(error_code, sql);
-			else if(error_code == SQLITE_ABORT) throw exceptions::abort(error_code, sql);
-			else if(error_code == SQLITE_BUSY) throw exceptions::busy(error_code, sql);
-			else if(error_code == SQLITE_LOCKED) throw exceptions::locked(error_code, sql);
-			else if(error_code == SQLITE_NOMEM) throw exceptions::nomem(error_code, sql);
-			else if(error_code == SQLITE_READONLY) throw exceptions::readonly(error_code, sql);
-			else if(error_code == SQLITE_INTERRUPT) throw exceptions::interrupt(error_code, sql);
-			else if(error_code == SQLITE_IOERR) throw exceptions::ioerr(error_code, sql);
-			else if(error_code == SQLITE_CORRUPT) throw exceptions::corrupt(error_code, sql);
-			else if(error_code == SQLITE_NOTFOUND) throw exceptions::notfound(error_code, sql);
-			else if(error_code == SQLITE_FULL) throw exceptions::full(error_code, sql);
-			else if(error_code == SQLITE_CANTOPEN) throw exceptions::cantopen(error_code, sql);
-			else if(error_code == SQLITE_PROTOCOL) throw exceptions::protocol(error_code, sql);
-			else if(error_code == SQLITE_EMPTY) throw exceptions::empty(error_code, sql);
-			else if(error_code == SQLITE_SCHEMA) throw exceptions::schema(error_code, sql);
-			else if(error_code == SQLITE_TOOBIG) throw exceptions::toobig(error_code, sql);
-			else if(error_code == SQLITE_CONSTRAINT) throw exceptions::constraint(error_code, sql);
-			else if(error_code == SQLITE_MISMATCH) throw exceptions::mismatch(error_code, sql);
-			else if(error_code == SQLITE_MISUSE) throw exceptions::misuse(error_code, sql);
-			else if(error_code == SQLITE_NOLFS) throw exceptions::nolfs(error_code, sql);
-			else if(error_code == SQLITE_AUTH) throw exceptions::auth(error_code, sql);
-			else if(error_code == SQLITE_FORMAT) throw exceptions::format(error_code, sql);
-			else if(error_code == SQLITE_RANGE) throw exceptions::range(error_code, sql);
-			else if(error_code == SQLITE_NOTADB) throw exceptions::notadb(error_code, sql);
-			else throw sqlite_exception(error_code, sql);
+			switch(error_code) {
+#define SQLITE_MODERN_CPP_ERROR_CODE(NAME,name,derived) \
+				case SQLITE_ ## NAME: throw exceptions::name(error_code, sql);
+#include "sqlite_modern_cpp/lists/error_codes.h"
+#undef SQLITE_MODERN_CPP_ERROR_CODE
+				default: throw sqlite_exception(error_code, sql);
+			}
 		}
 	}
 }
