@@ -43,7 +43,8 @@ namespace sqlite {
 	public:
 		sqlite_exception(const char* msg, std::string sql, int code = -1): runtime_error(msg), code(code), sql(sql) {}
 		sqlite_exception(int code, std::string sql): runtime_error(sqlite3_errstr(code)), code(code), sql(sql) {}
-		int get_code() const {return code;}
+		int get_code() const {return code & 0xFF;}
+		int get_extended_code() const {return code;}
 		std::string get_sql() const {return sql;}
 	private:
 		int code;
@@ -57,8 +58,12 @@ namespace sqlite {
 		//
 		//Note these names are exact matches to the names of the SQLITE error codes.
 #define SQLITE_MODERN_CPP_ERROR_CODE(NAME,name,derived) \
-		class name: public sqlite_exception { using sqlite_exception::sqlite_exception; };
+		class name: public sqlite_exception { using sqlite_exception::sqlite_exception; };\
+		derived
+#define SQLITE_MODERN_CPP_ERROR_CODE_EXTENDED(BASE,SUB,base,sub) \
+		class base ## _ ## sub: public base { using base::base; };
 #include "sqlite_modern_cpp/lists/error_codes.h"
+#undef SQLITE_MODERN_CPP_ERROR_CODE_EXTENDED
 #undef SQLITE_MODERN_CPP_ERROR_CODE
 
 		//Some additional errors are here for the C++ interface
@@ -68,10 +73,16 @@ namespace sqlite {
 		class more_statements: public sqlite_exception { using sqlite_exception::sqlite_exception; }; // Prepared statements can only contain one statement
 
 		static void throw_sqlite_error(const int& error_code, const std::string &sql = "") {
-			switch(error_code) {
-#define SQLITE_MODERN_CPP_ERROR_CODE(NAME,name,derived) \
-				case SQLITE_ ## NAME: throw exceptions::name(error_code, sql);
+			switch(error_code & 0xFF) {
+#define SQLITE_MODERN_CPP_ERROR_CODE(NAME,name,derived)     \
+				case SQLITE_ ## NAME: switch(error_code) {          \
+					derived                                           \
+					default: throw exceptions::name(error_code, sql); \
+				}
+#define SQLITE_MODERN_CPP_ERROR_CODE_EXTENDED(BASE,SUB,base,sub) \
+					case SQLITE_ ## BASE ## _ ## SUB: throw base ## _ ## sub(error_code, sql);
 #include "sqlite_modern_cpp/lists/error_codes.h"
+#undef SQLITE_MODERN_CPP_ERROR_CODE_EXTENDED
 #undef SQLITE_MODERN_CPP_ERROR_CODE
 				default: throw sqlite_exception(error_code, sql);
 			}
@@ -428,7 +439,8 @@ namespace sqlite {
 			sqlite3* tmp = nullptr;
 			auto ret = sqlite3_open_v2(db_name.data(), &tmp, static_cast<int>(config.flags), config.zVfs);
 			_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); }); // this will close the connection eventually when no longer needed.
-			if(ret != SQLITE_OK) exceptions::throw_sqlite_error(ret);
+			if(ret != SQLITE_OK) exceptions::throw_sqlite_error(_db ? sqlite3_extended_errcode(_db.get()) : ret);
+			sqlite3_extended_result_codes(_db.get(), true);
 			if(config.encoding == Encoding::UTF16)
 				*this << R"(PRAGMA encoding = "UTF-16";)";
 		}
@@ -442,7 +454,8 @@ namespace sqlite {
 			sqlite3* tmp = nullptr;
 			auto ret = sqlite3_open_v2(db_name_utf8.data(), &tmp, static_cast<int>(config.flags), config.zVfs);
 			_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); }); // this will close the connection eventually when no longer needed.
-			if(ret != SQLITE_OK) exceptions::throw_sqlite_error(ret);
+			if(ret != SQLITE_OK) exceptions::throw_sqlite_error(_db ? sqlite3_extended_errcode(_db.get()) : ret);
+			sqlite3_extended_result_codes(_db.get(), true);
 			if(config.encoding != Encoding::UTF8)
 				*this << R"(PRAGMA encoding = "UTF-16";)";
 		}

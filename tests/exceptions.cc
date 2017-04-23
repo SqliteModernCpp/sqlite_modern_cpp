@@ -17,8 +17,8 @@ int main() {
     db << "INSERT INTO person (id,name) VALUES (?,?)" << 1 << "jack";
     // inserting again to produce error
     db << "INSERT INTO person (id,name) VALUES (?,?)" << 1 << "jack";
-  } catch (sqlite_exception& e) {
-    cerr << e.get_code() << ": " << e.what() << " during "
+  } catch (exceptions::constraint_primarykey& e) {
+    cerr << e.get_code() << '/' << e.get_extended_code() << ": " << e.what() << " during "
          << quoted(e.get_sql()) << endl;
     expception_thrown = true;
 #if SQLITE_VERSION_NUMBER >= 3014000
@@ -29,9 +29,6 @@ int main() {
       cerr << "Wrong statement failed\n";
       exit(EXIT_FAILURE);
     }
-  } catch (...) {
-    cerr << "Ok, we have our excpetion thrown" << endl;
-    expception_thrown = true;
   }
 
   if(!expception_thrown) {
