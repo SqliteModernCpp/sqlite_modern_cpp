@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../errors.h"
 #include <sqlite3.h>
 #include <optional>
 #include <variant>
@@ -30,7 +31,7 @@ namespace sqlite::utility {
 	template<typename Callback, typename ...Options>
 	inline void variant_select_null(Callback&&callback) {
 		if constexpr(std::is_same_v<typename VariantFirstNullable<Options...>::type, void>) {
-			throw exceptions::mismatch("NULL is unsupported by this variant.", "", SQLITE_MISMATCH);
+			throw errors::mismatch("NULL is unsupported by this variant.", "", SQLITE_MISMATCH);
 		} else {
 			std::forward<Callback>(callback)(typename VariantFirstNullable<Options...>::type());
 		}
@@ -65,7 +66,7 @@ namespace sqlite::utility {
 	template<typename Callback, typename ...Options>
 	inline auto variant_select_integer(Callback&&callback) {
 		if constexpr(std::is_same_v<typename VariantFirstIntegerable<Options...>::type, void>) {
-			throw exceptions::mismatch("Integer is unsupported by this variant.", "", SQLITE_MISMATCH);
+			throw errors::mismatch("Integer is unsupported by this variant.", "", SQLITE_MISMATCH);
 		} else {
 			std::forward<Callback>(callback)(typename VariantFirstIntegerable<Options...>::type());
 		}
@@ -100,7 +101,7 @@ namespace sqlite::utility {
 	template<typename Callback, typename ...Options>
 	inline auto variant_select_float(Callback&&callback) {
 		if constexpr(std::is_same_v<typename VariantFirstFloatable<Options...>::type, void>) {
-			throw exceptions::mismatch("Real is unsupported by this variant.", "", SQLITE_MISMATCH);
+			throw errors::mismatch("Real is unsupported by this variant.", "", SQLITE_MISMATCH);
 		} else {
 			std::forward<Callback>(callback)(typename VariantFirstFloatable<Options...>::type());
 		}
@@ -135,7 +136,7 @@ namespace sqlite::utility {
 	template<typename Callback, typename ...Options>
 	inline void variant_select_text(Callback&&callback) {
 		if constexpr(std::is_same_v<typename VariantFirstTextable<Options...>::type, void>) {
-			throw exceptions::mismatch("Text is unsupported by this variant.", "", SQLITE_MISMATCH);
+			throw errors::mismatch("Text is unsupported by this variant.", "", SQLITE_MISMATCH);
 		} else {
 			std::forward<Callback>(callback)(typename VariantFirstTextable<Options...>::type());
 		}
@@ -166,7 +167,7 @@ namespace sqlite::utility {
 	template<typename Callback, typename ...Options>
 	inline auto variant_select_blob(Callback&&callback) {
 		if constexpr(std::is_same_v<typename VariantFirstBlobable<Options...>::type, void>) {
-			throw exceptions::mismatch("Blob is unsupported by this variant.", "", SQLITE_MISMATCH);
+			throw errors::mismatch("Blob is unsupported by this variant.", "", SQLITE_MISMATCH);
 		} else {
 			std::forward<Callback>(callback)(typename VariantFirstBlobable<Options...>::type());
 		}

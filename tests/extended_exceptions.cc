@@ -17,8 +17,8 @@ int main() {
     db << "INSERT INTO person (id,name) VALUES (?,?)" << 1 << "jack";
     // inserting again to produce error
     db << "INSERT INTO person (id,name) VALUES (?,?)" << 1 << "jack";
-  } catch (errors::constraint& e) {
-    cerr << e.get_code() << ": " << e.what() << " during "
+  } catch (errors::constraint_primarykey& e) {
+    cerr << e.get_code() << '/' << e.get_extended_code() << ": " << e.what() << " during "
          << quoted(e.get_sql()) << endl;
     expception_thrown = true;
 #if SQLITE_VERSION_NUMBER >= 3014000

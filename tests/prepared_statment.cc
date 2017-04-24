@@ -86,7 +86,7 @@ int main() {
 			try {
 				prep.execute();
 				exit(EXIT_FAILURE);
-			} catch(exceptions::reexecution& ex) {
+			} catch(errors::reexecution& ex) {
 				// Thats ok here
 			} catch(...) {
 				exit(EXIT_FAILURE);
