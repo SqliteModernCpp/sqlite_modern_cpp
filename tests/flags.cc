@@ -93,7 +93,7 @@ int main()
 				db << "INSERT INTO foo VALUES (?)" << "invalid";
 				cout << "Unexpected success on line " << __LINE__ << endl;
 				exit(EXIT_FAILURE);
-			} catch(exceptions::readonly&) {}
+			} catch(errors::readonly&) {}
 		}
 	}
 	catch(sqlite_exception e)

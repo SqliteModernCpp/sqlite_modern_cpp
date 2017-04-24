@@ -48,7 +48,7 @@ int main()
 
 		  cout << "Can open with wrong key";
 		  exit(EXIT_FAILURE);
-		} catch(exceptions::notadb) {
+		} catch(errors::notadb) {
 		  // Expected, wrong key
 		}
 		{

@@ -377,8 +377,8 @@ To support all possible values, you can use `variant<nullptr_t, sqlite_int64, do
 Errors
 ----
 
-On error, the library throws an error class indicating the type of error. The error classes are derived from the SQLITE3 error names, so if the error code is SQLITE_CONSTRAINT, the error class thrown is sqlite::exceptions::constraint. Note that all errors are derived from sqlite::sqlite_exception and that itself is derived from std::runtime_exception.
-sqlite::sqlite_exception has a `get_code()` member function to get the SQLITE3 error code.
+On error, the library throws an error class indicating the type of error. The error classes are derived from the SQLITE3 error names, so if the error code is SQLITE_CONSTRAINT, the error class thrown is sqlite::errors::constraint. SQLite3 extended error names are supported too. So there is e.g. a class sqlite::errors::constraint_primarykey derived from sqlite::errors::constraint. Note that all errors are derived from sqlite::sqlite_exception and that itself is derived from std::runtime_exception.
+sqlite::sqlite_exception has a `get_code()` member function to get the SQLITE3 error code or `get_extended_code()` to get the extended error code.
 Additionally you can use `get_sql()` to see the SQL statement leading to the error.
 
 ```c++
@@ -397,7 +397,9 @@ Additionally you can use `get_sql()` to see the SQL statement leading to the err
 		      << e.get_sql() << endl;
 	}
 	/* you can catch specific exceptions as well,
-	   catch(sqlite::exceptions::constraint e) {  } */
+	   catch(sqlite::errors::constraint e) {  } */
+	/* and even more specific exceptions
+	   catch(sqlite::errors::constraint_primarykey e) {  } */
 ```
 
 Custom SQL functions
