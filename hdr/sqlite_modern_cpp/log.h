@@ -26,6 +26,21 @@ namespace sqlite {
 					Functor(std::forward<Functor1>(functor)) {}
 				using Functor::operator();
 		};
+		template<class Functor>
+		class WrapIntoFunctor: public Functor {
+			public:
+				template<class Functor1>
+				WrapIntoFunctor(Functor1 &&functor):
+					Functor(std::forward<Functor1>(functor)) {}
+				using Functor::operator();
+		};
+		template<class ReturnType, class ...Arguments>
+		class WrapIntoFunctor<ReturnType(*)(Arguments...)> {
+			ReturnType(*ptr)(Arguments...);
+			public:
+				WrapIntoFunctor(ReturnType(*ptr)(Arguments...)): ptr(ptr) {}
+				ReturnType operator()(Arguments... arguments) { return (*ptr)(std::forward<Arguments>(arguments)...); }
+		};
 	}
 	template<class Handler>
 	typename std::enable_if<!std::is_callable<Handler(const sqlite_exception&)>::value>::type
@@ -36,7 +51,7 @@ namespace sqlite {
 	template<class ...Handler>
 	typename std::enable_if<sizeof...(Handler)>=2>::type
 	error_log(Handler &&...handler) {
-		return error_log(detail::FunctorOverload<typename std::decay<Handler>::type...>(std::forward<Handler>(handler)...));
+		return error_log(detail::FunctorOverload<detail::WrapIntoFunctor<typename std::decay<Handler>::type>...>(std::forward<Handler>(handler)...));
 	}
 	template<class Handler>
 	typename std::enable_if<!std::is_callable<Handler(const sqlite_exception&)>::value>::type
