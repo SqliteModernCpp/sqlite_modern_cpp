@@ -47,6 +47,14 @@ namespace sqlite {
 				WrapIntoFunctor(ReturnType(*ptr)(Arguments...)): ptr(ptr) {}
 				ReturnType operator()(Arguments... arguments) { return (*ptr)(std::forward<Arguments>(arguments)...); }
 		};
+		inline void store_error_log_data_pointer(std::shared_ptr<void> ptr) {
+			static std::shared_ptr<void> stored;
+			stored = std::move(ptr);
+		}
+		template<class T>
+		std::shared_ptr<typename std::decay<T>::type> make_shared_inferred(T &&t) {
+			return std::make_shared<typename std::decay<T>::type>(std::forward<T>(t));
+		}
 	}
 	template<class Handler>
 	typename std::enable_if<!detail::is_callable<Handler(const sqlite_exception&)>::value>::type
@@ -67,7 +75,7 @@ namespace sqlite {
 	template<class Handler>
 	typename std::enable_if<detail::is_callable<Handler(const sqlite_exception&)>::value>::type
 	error_log(Handler &&handler) {
-		auto ptr = new auto([handler = std::forward<Handler>(handler)](int error_code, const char *errstr) mutable {
+		auto ptr = detail::make_shared_inferred([handler = std::forward<Handler>(handler)](int error_code, const char *errstr) mutable {
 			  switch(error_code & 0xFF) {
 #define SQLITE_MODERN_CPP_ERROR_CODE(NAME,name,derived)             \
 				  case SQLITE_ ## NAME: switch(error_code) {                \
@@ -84,8 +92,10 @@ namespace sqlite {
 				  default: handler(sqlite_exception(errstr, "", error_code)); \
 			  }
 			});
+
 		sqlite3_config(SQLITE_CONFIG_LOG, (void(*)(void*,int,const char*))[](void *functor, int error_code, const char *errstr) {
-				(*static_cast<decltype(ptr)>(functor))(error_code, errstr);
-			}, ptr);
+				(*static_cast<decltype(ptr.get())>(functor))(error_code, errstr);
+			}, ptr.get());
+		detail::store_error_log_data_pointer(std::move(ptr));
 	}
 }
