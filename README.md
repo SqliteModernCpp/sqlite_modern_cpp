@@ -402,6 +402,30 @@ Additionally you can use `get_sql()` to see the SQL statement leading to the err
 	   catch(sqlite::errors::constraint_primarykey e) {  } */
 ```
 
+You can also register a error logging function with `sqlite::error_log`.
+The `<sqlite_modern_cpp/log.h>` header has to be included to make this function available.
+The call to `sqlite::error_log` has to be the first call to any `sqlite_modern_cpp` function by your program.
+
+```c++
+	error_log(
+		[&](sqlite_exception& e) {
+			cerr  << e.get_code() << ": " << e.what() << endl;
+		},
+		[&](errors::misuse& e) {
+			/* You can behave differently to specific exceptions */
+		}
+	);
+	database db(":memory:");
+	db << "create table person (id integer primary key not null, name text);";
+
+	try {
+		db << "insert into person (id, name) values (?,?)" << 1 << "jack";
+		// inserting again to produce error
+		db << "insert into person (id, name) values (?,?)" << 1 << "jack";
+	}
+	catch (sqlite_exception& e) {}
+```
+
 Custom SQL functions
 ----
 
