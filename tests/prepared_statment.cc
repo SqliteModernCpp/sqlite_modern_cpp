@@ -99,6 +99,11 @@ int main() {
 
 		}
 
+		auto ppsc = db << "CREATE TABLE tnums(name VARCHAR(30) PRIMARY KEY ASC NOT NULL UNIQUE, num INT NOT NULL);";
+		auto ppsi = db << "INSERT INTO tnums VALUES (?,?);";
+		ppsi << "zero" << 0 << endr;
+		ppsi << [&](database_binder&dbi) { dbi << "one" << 1; } << endr;
+
 
 	} catch(sqlite_exception e) {
 		cout << "Unexpected error " << e.what() << endl;
