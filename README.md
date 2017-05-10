@@ -412,7 +412,7 @@ The call to `sqlite::error_log` has to be the first call to any `sqlite_modern_c
 			cerr  << e.get_code() << ": " << e.what() << endl;
 		},
 		[&](errors::misuse& e) {
-			/* You can behave differently to specific exceptions */
+			/* You can behave differently to specific errors */
 		}
 	);
 	database db(":memory:");
