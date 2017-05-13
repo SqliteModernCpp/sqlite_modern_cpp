@@ -13,67 +13,67 @@ using namespace std;
 
 int main() {
 
-	try {
-		// creates a database file 'dbfile.db' if it does not exists.
-		database db("dbfile.db");
+   try {
+      // creates a database file 'dbfile.db' if it does not exists.
+      database db("dbfile.db");
 
-		// executes the query and creates a 'user' table
-		db <<
-			"create table if not exists user ("
-			"   _id integer primary key autoincrement not null,"
-			"   age int,"
-			"   name text,"
-			"   weight real"
-			");";
+      // executes the query and creates a 'user' table
+      db <<
+         "create table if not exists user ("
+         "   _id integer primary key autoincrement not null,"
+         "   age int,"
+         "   name text,"
+         "   weight real"
+         ");";
 
-		// inserts a new user record.
-		// binds the fields to '?' .
-		// note that only types allowed for bindings are :
-		//      int ,long, long long, float, double
-		//      string , u16string
-		// sqlite3 only supports utf8 and utf16 strings, you should use std::string for utf8 and std::u16string for utf16.
-		// note that u"my text" is a utf16 string literal of type char16_t * .
-		db << "insert into user (age,name,weight) values (?,?,?);"
-			<< 20
-			<< u"bob"
-			<< 83.25;
+      // inserts a new user record.
+      // binds the fields to '?' .
+      // note that only types allowed for bindings are :
+      //      int ,long, long long, float, double
+      //      string , u16string
+      // sqlite3 only supports utf8 and utf16 strings, you should use std::string for utf8 and std::u16string for utf16.
+      // note that u"my text" is a utf16 string literal of type char16_t * .
+      db << "insert into user (age,name,weight) values (?,?,?);"
+         << 20
+         << u"bob"
+         << 83.25;
 
-		int age = 21;
-		float weight = 68.5;
-		string name = "jack";
-		db << u"insert into user (age,name,weight) values (?,?,?);" // utf16 query string
-			<< age
-			<< name
-			<< weight;
+      int age = 21;
+      float weight = 68.5;
+      string name = "jack";
+      db << u"insert into user (age,name,weight) values (?,?,?);" // utf16 query string
+         << age
+         << name
+         << weight;
 
-		cout << "The new record got assigned id " << db.last_insert_rowid() << endl;
+      cout << "The new record got assigned id " << db.last_insert_rowid() << endl;
 
-		// slects from user table on a condition ( age > 18 ) and executes
-		// the lambda for each row returned .
-		db << "select age,name,weight from user where age > ? ;"
-			<< 18
-			>> [&](int age, string name, double weight) {
-			cout << age << ' ' << name << ' ' << weight << endl;
-		};
+      // slects from user table on a condition ( age > 18 ) and executes
+      // the lambda for each row returned .
+      db << "select age,name,weight from user where age > ? ;"
+         << 18
+         >> [&](int age, string name, double weight) {
+            cout << age << ' ' << name << ' ' << weight << endl;
+         };
 
-		// selects the count(*) from user table
-		// note that you can extract a single culumn single row result only to : int,long,long,float,double,string,u16string
-		int count = 0;
-		db << "select count(*) from user" >> count;
-		cout << "cout : " << count << endl;
+      // selects the count(*) from user table
+      // note that you can extract a single culumn single row result only to : int,long,long,float,double,string,u16string
+      int count = 0;
+      db << "select count(*) from user" >> count;
+      cout << "cout : " << count << endl;
 
-		// you can also extract multiple column rows
-		db << "select age, name from user where _id=1;" >> tie(age, name);
-		cout << "Age = " << age << ", name = " << name << endl;
+      // you can also extract multiple column rows
+      db << "select age, name from user where _id=1;" >> tie(age, name);
+      cout << "Age = " << age << ", name = " << name << endl;
 
-		// this also works and the returned value will be automatically converted to string
-		string str_count;
-		db << "select count(*) from user" >> str_count;
-		cout << "scount : " << str_count << endl;
-	}
-	catch (exception& e) {
-		cout << e.what() << endl;
-	}
+      // this also works and the returned value will be automatically converted to string
+      string str_count;
+      db << "select count(*) from user" >> str_count;
+      cout << "scount : " << str_count << endl;
+   }
+   catch (exception& e) {
+      cout << e.what() << endl;
+   }
 }
 ```
 
@@ -84,16 +84,16 @@ Additional flags
 You can pass additional open flags to SQLite by using a config object:
 
 ```c++
-		sqlite_config config;
-		config.flags = OpenFlags::READONLY
-		database db("some_db", config);
-		int a;
-		// Now you can only read from db
-		auto ps = db << "select a from table where something = ? and anotherthing = ?" >> a;
-		config.flags = OpenFlags::READWRITE | OpenFlags::CREATE; // This is the default
-		config.encoding = Encoding::UTF16; // The encoding is respected only if you create a new database
-		database db2("some_db2", config);
-		// If some_db2 didn't exists before, it will be created with UTF-16 encoding.
+sqlite_config config;
+config.flags = OpenFlags::READONLY
+database db("some_db", config);
+int a;
+// Now you can only read from db
+auto ps = db << "select a from table where something = ? and anotherthing = ?" >> a;
+config.flags = OpenFlags::READWRITE | OpenFlags::CREATE; // This is the default
+config.encoding = Encoding::UTF16; // The encoding is respected only if you create a new database
+database db2("some_db2", config);
+// If some_db2 didn't exists before, it will be created with UTF-16 encoding.
 ```
 
 Prepared Statements
@@ -101,42 +101,42 @@ Prepared Statements
 It is possible to retain and reuse statments this will keep the query plan and in case of an complex query or many uses might increase the performance significantly.
 
 ```c++
-		database db(":memory:");
+database db(":memory:");
 
-		// if you use << on a sqlite::database you get a prepared statment back
-		// this will not be executed till it gets destroyed or you execute it explicitly
-		auto ps = db << "select a,b from table where something = ? and anotherthing = ?"; // get a prepared parsed and ready statment
+// if you use << on a sqlite::database you get a prepared statment back
+// this will not be executed till it gets destroyed or you execute it explicitly
+auto ps = db << "select a,b from table where something = ? and anotherthing = ?"; // get a prepared parsed and ready statment
 
-		// first if needed bind values to it
-		ps << 5;
-		int tmp = 8;
-		ps << tmp;
+// first if needed bind values to it
+ps << 5;
+int tmp = 8;
+ps << tmp;
 
-		// now you can execute it with `operator>>` or `execute()`.
-		// If the statement was executed once it will not be executed again when it goes out of scope.
-		// But beware that it will execute on destruction if it wasn't executed!
-		ps >> [&](int a,int b){ ... };
+// now you can execute it with `operator>>` or `execute()`.
+// If the statement was executed once it will not be executed again when it goes out of scope.
+// But beware that it will execute on destruction if it wasn't executed!
+ps >> [&](int a,int b){ ... };
 
-		// after a successfull execution the statment needs to be reset to be execute again. This will reset the bound values too!
-		ps.reset();
+// after a successfull execution the statment needs to be reset to be execute again. This will reset the bound values too!
+ps.reset();
 
-		// If you dont need the returned values you can execute it like this
-		ps.execute(); // the statment will not be reset!
+// If you dont need the returned values you can execute it like this
+ps.execute(); // the statment will not be reset!
 
-		// there is a convinience operator to execute and reset in one go
-		ps++;
+// there is a convinience operator to execute and reset in one go
+ps++;
 
-		// To disable the execution of a statment when it goes out of scope and wasn't used
-		ps.used(true); // or false if you want it to execute even if it was used
+// To disable the execution of a statment when it goes out of scope and wasn't used
+ps.used(true); // or false if you want it to execute even if it was used
 
-		// Usage Example:
+// Usage Example:
 
-		auto ps = db << "insert into complex_table_with_lots_of_indices values (?,?,?)";
-		int i = 0;
-		while( i < 100000 ){
-			ps << long_list[i++] << long_list[i++] << long_list[i++];
-			ps++;
-		}
+auto ps = db << "insert into complex_table_with_lots_of_indices values (?,?,?)";
+int i = 0;
+while( i < 100000 ){
+   ps << long_list[i++] << long_list[i++] << long_list[i++];
+   ps++;
+}
 ```
 
 Shared Connections
@@ -145,28 +145,28 @@ If you need the handle to the database connection to execute sqlite3 commands di
 
 Take this example on how to deal with a database backup using SQLITEs own functions in a save and modern way.
 ```c++
-	try {
-		database backup("backup");		//Open the database file we want to backup to
+try {
+   database backup("backup");		//Open the database file we want to backup to
 
-		auto con = db.connection();		// get a handle to the DB we want to backup in our scope
-										// this way we are sure the DB is open and ok while we backup
+   auto con = db.connection();   // get a handle to the DB we want to backup in our scope
+                                 // this way we are sure the DB is open and ok while we backup
 
-		// Init Backup and make sure its freed on exit or exceptions!
-		auto state =
-			std::unique_ptr<sqlite3_backup,decltype(&sqlite3_backup_finish)>(
-			sqlite3_backup_init(backup.connection().get(), "main", con.get(), "main"),
-			sqlite3_backup_finish
-			);
+   // Init Backup and make sure its freed on exit or exceptions!
+   auto state =
+      std::unique_ptr<sqlite3_backup,decltype(&sqlite3_backup_finish)>(
+      sqlite3_backup_init(backup.connection().get(), "main", con.get(), "main"),
+      sqlite3_backup_finish
+      );
 
-		if(state) {
-			int rc;
-			// Each iteration of this loop copies 500 database pages from database db to the backup database.
-			do {
-				rc = sqlite3_backup_step(state.get(), 500);
-				std::cout << "Remaining " << sqlite3_backup_remaining(state.get()) << "/" << sqlite3_backup_pagecount(state.get()) << "\n";
-			} while(rc == SQLITE_OK || rc == SQLITE_BUSY || rc == SQLITE_LOCKED);
-		}
-	} // Release allocated resources.
+   if(state) {
+      int rc;
+      // Each iteration of this loop copies 500 database pages from database db to the backup database.
+      do {
+         rc = sqlite3_backup_step(state.get(), 500);
+         std::cout << "Remaining " << sqlite3_backup_remaining(state.get()) << "/" << sqlite3_backup_pagecount(state.get()) << "\n";
+      } while(rc == SQLITE_OK || rc == SQLITE_BUSY || rc == SQLITE_LOCKED);
+   }
+} // Release allocated resources.
 ```
 
 Transactions
@@ -174,23 +174,23 @@ Transactions
 You can use transactions with `begin;`, `commit;` and `rollback;` commands.
 
 ```c++
-		db << "begin;"; // begin a transaction ...   
-		db << "insert into user (age,name,weight) values (?,?,?);"
-			<< 20
-			<< u"bob"
-			<< 83.25f;
-		db << "insert into user (age,name,weight) values (?,?,?);" // utf16 string
-			<< 21
-			<< u"jack"
-			<< 68.5;
-		db << "commit;"; // commit all the changes.
+db << "begin;"; // begin a transaction ...   
+db << "insert into user (age,name,weight) values (?,?,?);"
+   << 20
+   << u"bob"
+   << 83.25f;
+db << "insert into user (age,name,weight) values (?,?,?);" // utf16 string
+   << 21
+   << u"jack"
+   << 68.5;
+db << "commit;"; // commit all the changes.
 
-		db << "begin;"; // begin another transaction ....
-		db << "insert into user (age,name,weight) values (?,?,?);" // utf16 string
-			<< 19
-			<< u"chirs"
-			<< 82.7;
-		db << "rollback;"; // cancel this transaction ...
+db << "begin;"; // begin another transaction ....
+db << "insert into user (age,name,weight) values (?,?,?);" // utf16 string
+   << 19
+   << u"chirs"
+   << 82.7;
+db << "rollback;"; // cancel this transaction ...
 
 ```
 
@@ -200,16 +200,16 @@ Use `std::vector<T>` to store and retrieve blob data.
 `T` could be `char,short,int,long,long long, float or double`.
 
 ```c++
-		db << "CREATE TABLE person (name TEXT, numbers BLOB);";
-		db << "INSERT INTO person VALUES (?, ?)" << "bob" << vector<int> { 1, 2, 3, 4};
-		db << "INSERT INTO person VALUES (?, ?)" << "sara" << vector<double> { 1.0, 2.0, 3.0, 4.0};
+db << "CREATE TABLE person (name TEXT, numbers BLOB);";
+db << "INSERT INTO person VALUES (?, ?)" << "bob" << vector<int> { 1, 2, 3, 4};
+db << "INSERT INTO person VALUES (?, ?)" << "sara" << vector<double> { 1.0, 2.0, 3.0, 4.0};
 
-		vector<int> numbers_bob;
-		db << "SELECT numbers from person where name = ?;" << "bob" >> numbers_bob;
+vector<int> numbers_bob;
+db << "SELECT numbers from person where name = ?;" << "bob" >> numbers_bob;
 
-		db << "SELECT numbers from person where name = ?;" << "sara" >> [](vector<double> numbers_sara){
-		    for(auto e : numbers_sara) cout << e << ' '; cout << endl;
-		};
+db << "SELECT numbers from person where name = ?;" << "sara" >> [](vector<double> numbers_sara){
+    for(auto e : numbers_sara) cout << e << ' '; cout << endl;
+};
 ```
 
 NULL values
@@ -257,28 +257,27 @@ using namespace sqlite;
 using namespace std;
 
 int main() {
+   try {
+      // creates a database file 'dbfile.db' if it does not exists with password 'secret'
+      sqlcipher_config config;
+      config.key = secret;
+      sqlcipher_database db("dbfile.db", config);
 
-	try {
-		// creates a database file 'dbfile.db' if it does not exists with password 'secret'
-		sqlcipher_config config;
-		config.key = secret;
-		sqlcipher_database db("dbfile.db", config);
+      // executes the query and creates a 'user' table
+      db <<
+         "create table if not exists user ("
+         "   _id integer primary key autoincrement not null,"
+         "   age int,"
+         "   name text,"
+         "   weight real"
+         ");";
 
-		// executes the query and creates a 'user' table
-		db <<
-			"create table if not exists user ("
-			"   _id integer primary key autoincrement not null,"
-			"   age int,"
-			"   name text,"
-			"   weight real"
-			");";
-
-		// More queries ...
+      // More queries ...
       db.rekey("new_secret"); // Change the password of the already encrypted database.
 
       // Even more queries ..
-	}
-	catch (exception& e) { cout << e.what() << endl; }
+   }
+   catch (exception& e) { cout << e.what() << endl; }
 }
 ```
 
@@ -287,53 +286,44 @@ NULL values (C++17)
 You can use `std::optional<T>` as an alternative for `std::unique_ptr<T>` to work with NULL values.
 
 ```c++
-	#include <sqlite_modern_cpp.h>
+#include <sqlite_modern_cpp.h>
 
-	struct User {
-		long long _id;
-		std::optional<int> age;
-		std::optional<string> name;
-		std::optional<real> weight;
-	};
+struct User {
+   long long _id;
+   std::optional<int> age;
+   std::optional<string> name;
+   std::optional<real> weight;
+};
 
-	{
-		User user;
-		user.name = "bob";
+int main() {
+   User user;
+   user.name = "bob";
 
-		// Same database as above
-		database db("dbfile.db");
+   // Same database as above
+   database db("dbfile.db");
 
-		// Here, age and weight will be inserted as NULL in the database.
-		db << "insert into user (age,name,weight) values (?,?,?);"
-			<< user.age
-			<< user.name
-			<< user.weight;
+   // Here, age and weight will be inserted as NULL in the database.
+   db << "insert into user (age,name,weight) values (?,?,?);"
+      << user.age
+      << user.name
+      << user.weight;
+   user._id = db.last_insert_rowid();
 
-		user._id = db.last_insert_rowid();
-	}
+   // Here, the User instance will retain the NULL value(s) from the database.
+   db << "select _id,age,name,weight from user where age > ? ;"
+      << 18
+      >> [&](long long id,
+         std::optional<int> age,
+         std::optional<string> name
+         std::optional<real> weight) {
 
-	{
-		// Here, the User instance will retain the NULL value(s) from the database.
-		db << "select _id,age,name,weight from user where age > ? ;"
-			<< 18
-			>> [&](long long id,
-				std::optional<int> age,
-				std::optional<string> name
-				std::optional<real> weight) {
-
-			User user;
-			user._id = id;
-			user.age = age;
-			user.name = move(name);
-			user.weight = weight;
-
-			cout << "id=" << user._id
-				<< " age = " << (user.age ? to_string(*user.age) ? string("NULL"))
-				<< " name = " << (user.name ? *user.name : string("NULL"))
-				<< " weight = " << (user.weight ? to_string(*user.weight) : string(NULL))
-				<< endl;
-		};
-	}
+      cout << "id=" << _id
+         << " age = " << (age ? to_string(*age) ? string("NULL"))
+         << " name = " << (name ? *name : string("NULL"))
+         << " weight = " << (weight ? to_string(*weight) : string(NULL))
+         << endl;
+   };
+}
 ```
 
 If you do not have C++17 support, you can use boost optional instead by defining `_MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT` before importing the `sqlite_modern_cpp` header.
@@ -382,24 +372,24 @@ sqlite::sqlite_exception has a `get_code()` member function to get the SQLITE3 e
 Additionally you can use `get_sql()` to see the SQL statement leading to the error.
 
 ```c++
-	database db(":memory:");
-	db << "create table person (id integer primary key not null, name text);";
+database db(":memory:");
+db << "create table person (id integer primary key not null, name text);";
 
-	try {
-		db << "insert into person (id, name) values (?,?)" << 1 << "jack";
-		// inserting again to produce error
-		db << "insert into person (id, name) values (?,?)" << 1 << "jack";
-	}
-	/* if you are trying to catch all sqlite related exceptions
-	 * make sure to catch them by reference */
-	catch (sqlite_exception& e) {
-		cerr  << e.get_code() << ": " << e.what() << " during "
-		      << e.get_sql() << endl;
-	}
-	/* you can catch specific exceptions as well,
-	   catch(sqlite::errors::constraint e) {  } */
-	/* and even more specific exceptions
-	   catch(sqlite::errors::constraint_primarykey e) {  } */
+try {
+   db << "insert into person (id, name) values (?,?)" << 1 << "jack";
+   // inserting again to produce error
+   db << "insert into person (id, name) values (?,?)" << 1 << "jack";
+}
+/* if you are trying to catch all sqlite related exceptions
+ * make sure to catch them by reference */
+catch (sqlite_exception& e) {
+   cerr  << e.get_code() << ": " << e.what() << " during "
+         << e.get_sql() << endl;
+}
+/* you can catch specific exceptions as well,
+   catch(sqlite::errors::constraint e) {  } */
+/* and even more specific exceptions
+   catch(sqlite::errors::constraint_primarykey e) {  } */
 ```
 
 You can also register a error logging function with `sqlite::error_log`.
@@ -407,23 +397,23 @@ The `<sqlite_modern_cpp/log.h>` header has to be included to make this function 
 The call to `sqlite::error_log` has to be the first call to any `sqlite_modern_cpp` function by your program.
 
 ```c++
-	error_log(
-		[&](sqlite_exception& e) {
-			cerr  << e.get_code() << ": " << e.what() << endl;
-		},
-		[&](errors::misuse& e) {
-			/* You can behave differently to specific errors */
-		}
-	);
-	database db(":memory:");
-	db << "create table person (id integer primary key not null, name text);";
+error_log(
+   [&](sqlite_exception& e) {
+      cerr  << e.get_code() << ": " << e.what() << endl;
+   },
+   [&](errors::misuse& e) {
+      /* You can behave differently to specific errors */
+   }
+);
+database db(":memory:");
+db << "create table person (id integer primary key not null, name text);";
 
-	try {
-		db << "insert into person (id, name) values (?,?)" << 1 << "jack";
-		// inserting again to produce error
-		db << "insert into person (id, name) values (?,?)" << 1 << "jack";
-	}
-	catch (sqlite_exception& e) {}
+try {
+   db << "insert into person (id, name) values (?,?)" << 1 << "jack";
+   // inserting again to produce error
+   db << "insert into person (id, name) values (?,?)" << 1 << "jack";
+}
+catch (sqlite_exception& e) {}
 ```
 
 Custom SQL functions
@@ -432,16 +422,16 @@ Custom SQL functions
 To extend SQLite with custom functions, you just implement them in C++:
 
 ```c++
-  database db(":memory:");
-  db.define("tgamma", [](double i) {return std::tgamma(i);});
-  db << "CREATE TABLE numbers (number INTEGER);";
+database db(":memory:");
+db.define("tgamma", [](double i) {return std::tgamma(i);});
+db << "CREATE TABLE numbers (number INTEGER);";
 
-  for(auto i=0; i!=10; ++i)
-    db << "INSERT INTO numbers VALUES (?);" << i;
+for(auto i=0; i!=10; ++i)
+   db << "INSERT INTO numbers VALUES (?);" << i;
 
-  db << "SELECT number, tgamma(number+1) FROM numbers;" >> [](double number, double factorial) {
-    cout << number << "! = " << factorial << '\n';
-  };
+db << "SELECT number, tgamma(number+1) FROM numbers;" >> [](double number, double factorial) {
+   cout << number << "! = " << factorial << '\n';
+};
 ```
 
 NDK support
