@@ -117,13 +117,10 @@ ps << tmp;
 // But beware that it will execute on destruction if it wasn't executed!
 ps >> [&](int a,int b){ ... };
 
-// after a successfull execution the statment needs to be reset to be execute again. This will reset the bound values too!
-ps.reset();
-
+// after a successfull execution the statment an be executed again, but the bound values are resetted.
 // If you dont need the returned values you can execute it like this
-ps.execute(); // the statment will not be reset!
-
-// there is a convinience operator to execute and reset in one go
+ps.execute();
+// or like this
 ps++;
 
 // To disable the execution of a statment when it goes out of scope and wasn't used

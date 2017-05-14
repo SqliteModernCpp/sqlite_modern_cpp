@@ -73,23 +73,19 @@ namespace sqlite {
 			_stmt(std::move(other._stmt)),
 			_inx(other._inx), execution_started(other.execution_started) { }
 
-		void reset() {
-			sqlite3_reset(_stmt.get());
-			sqlite3_clear_bindings(_stmt.get());
-			_inx = 1;
+		void reset[[deprecated]]() {
 			used(false);
 		}
 
 		void execute() {
 			int hresult;
-			used(true); /* prevent from executing again when goes out of scope */
+			auto_reset helper(this);
 
 			while((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {}
 
 			if(hresult != SQLITE_DONE) {
 				errors::throw_sqlite_error(hresult, sql());
 			}
-			
 		}
 		
 		std::string sql() {
@@ -107,9 +103,6 @@ namespace sqlite {
 		}
 
 		void used(bool state) {
-			if(execution_started == true && state == true) {
-				throw errors::reexecution("Already used statement executed again! Please reset() first!",sql());
-			}
 			execution_started = state; 
 		}
 		bool used() const { return execution_started; }
@@ -123,9 +116,21 @@ namespace sqlite {
 
 		bool execution_started = false;
 
+		struct auto_reset {
+			database_binder *binder;
+			auto_reset(database_binder *binder): binder(binder) {
+				binder->used(true);
+			}
+			~auto_reset() {
+				sqlite3_reset(binder->_stmt.get());
+				sqlite3_clear_bindings(binder->_stmt.get());
+				binder->_inx = 1;
+			}
+		};
+
 		void _extract(std::function<void(void)> call_back) {
 			int hresult;
-			used(true);
+			auto_reset helper(this);
 
 			while((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {
 				call_back();
@@ -138,7 +143,7 @@ namespace sqlite {
 
 		void _extract_single_value(std::function<void(void)> call_back) {
 			int hresult;
-			used(true);
+			auto_reset helper(this);
 
 			if((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {
 				call_back();
@@ -892,7 +897,7 @@ namespace sqlite {
 #endif
 
 	// Some ppl are lazy so we have a operator for proper prep. statemant handling.
-	void inline operator++(database_binder& db, int) { db.execute(); db.reset(); }
+	void inline operator++(database_binder& db, int) { db.execute(); }
 
 	// Convert the rValue binder to a reference and call first op<<, its needed for the call that creates the binder (be carefull of recursion here!)
 	template<typename T> database_binder& operator << (database_binder&& db, const T& val) { return db << val; }

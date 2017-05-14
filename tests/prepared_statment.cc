@@ -16,10 +16,8 @@ int main() {
 
 		pps >> test; // execute statement
 
-		pps.reset();
-
 		pps << 4; // bind a rvalue
-		pps++; // and execute and reset
+		pps++; // and execute
 
 		pps << 8 >> test;
 
@@ -81,22 +79,9 @@ int main() {
 			auto prep = db << "select ?";
 
 			prep << 5;
-
 			prep.execute();
-			try {
-				prep.execute();
-				exit(EXIT_FAILURE);
-			} catch(errors::reexecution& ex) {
-				// Thats ok here
-			} catch(...) {
-				exit(EXIT_FAILURE);
-			}
-
-			prep.reset();
-
 			prep << 6;
 			prep.execute();
-
 		}
 
 
