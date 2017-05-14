@@ -73,12 +73,6 @@ namespace sqlite {
 			_stmt(std::move(other._stmt)),
 			_inx(other._inx), execution_started(other.execution_started) { }
 
-		void reset[[deprecated]]() {
-			used(true);
-			_inx = 0;
-			used(false);
-		}
-
 		void execute() {
 			_start_execute();
 			int hresult;
