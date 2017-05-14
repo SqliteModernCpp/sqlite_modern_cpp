@@ -74,12 +74,14 @@ namespace sqlite {
 			_inx(other._inx), execution_started(other.execution_started) { }
 
 		void reset[[deprecated]]() {
+			used(true);
+			_inx = 0;
 			used(false);
 		}
 
 		void execute() {
+			_start_execute();
 			int hresult;
-			auto_reset helper(this);
 
 			while((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {}
 
@@ -103,6 +105,11 @@ namespace sqlite {
 		}
 
 		void used(bool state) {
+			if(!state) {
+				// We may have to reset first if we haven't done so already:
+				_next_index();
+				--_inx;
+			}
 			execution_started = state; 
 		}
 		bool used() const { return execution_started; }
@@ -116,21 +123,22 @@ namespace sqlite {
 
 		bool execution_started = false;
 
-		struct auto_reset {
-			database_binder *binder;
-			auto_reset(database_binder *binder): binder(binder) {
-				binder->used(true);
+		int _next_index() {
+			if(execution_started && !_inx) {
+				sqlite3_reset(_stmt.get());
+				sqlite3_clear_bindings(_stmt.get());
 			}
-			~auto_reset() {
-				sqlite3_reset(binder->_stmt.get());
-				sqlite3_clear_bindings(binder->_stmt.get());
-				binder->_inx = 1;
-			}
-		};
+			return ++_inx;
+		}
+		void _start_execute() {
+			_next_index();
+			_inx = 0;
+			used(true);
+		}
 
 		void _extract(std::function<void(void)> call_back) {
 			int hresult;
-			auto_reset helper(this);
+			_start_execute();
 
 			while((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {
 				call_back();
@@ -143,7 +151,7 @@ namespace sqlite {
 
 		void _extract_single_value(std::function<void(void)> call_back) {
 			int hresult;
-			auto_reset helper(this);
+			_start_execute();
 
 			if((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {
 				call_back();
@@ -248,13 +256,13 @@ namespace sqlite {
 		database_binder(std::shared_ptr<sqlite3> db, std::u16string const & sql):
 			_db(db),
 			_stmt(_prepare(sql), sqlite3_finalize),
-			_inx(1) {
+			_inx(0) {
 		}
 
 		database_binder(std::shared_ptr<sqlite3> db, std::string const & sql):
 			_db(db),
 			_stmt(_prepare(sql), sqlite3_finalize),
-			_inx(1) {
+			_inx(0) {
 		}
 
 		~database_binder() noexcept(false) {
@@ -520,10 +528,9 @@ namespace sqlite {
 	// int
 	 inline database_binder& operator<<(database_binder& db, const int& val) {
 		int hresult;
-		if((hresult = sqlite3_bind_int(db._stmt.get(), db._inx, val)) != SQLITE_OK) {
+		if((hresult = sqlite3_bind_int(db._stmt.get(), db._next_index(), val)) != SQLITE_OK) {
 			errors::throw_sqlite_error(hresult, db.sql());
 		}
-		++db._inx;
 		return db;
 	}
 	 inline void store_result_in_db(sqlite3_context* db, const int& val) {
@@ -547,11 +554,10 @@ namespace sqlite {
 	// sqlite_int64
 	 inline database_binder& operator <<(database_binder& db, const sqlite_int64&  val) {
 		int hresult;
-		if((hresult = sqlite3_bind_int64(db._stmt.get(), db._inx, val)) != SQLITE_OK) {
+		if((hresult = sqlite3_bind_int64(db._stmt.get(), db._next_index(), val)) != SQLITE_OK) {
 			errors::throw_sqlite_error(hresult, db.sql());
 		}
 
-		++db._inx;
 		return db;
 	}
 	 inline void store_result_in_db(sqlite3_context* db, const sqlite_int64& val) {
@@ -575,11 +581,10 @@ namespace sqlite {
 	// float
 	 inline database_binder& operator <<(database_binder& db, const float& val) {
 		int hresult;
-		if((hresult = sqlite3_bind_double(db._stmt.get(), db._inx, double(val))) != SQLITE_OK) {
+		if((hresult = sqlite3_bind_double(db._stmt.get(), db._next_index(), double(val))) != SQLITE_OK) {
 			errors::throw_sqlite_error(hresult, db.sql());
 		}
 
-		++db._inx;
 		return db;
 	}
 	 inline void store_result_in_db(sqlite3_context* db, const float& val) {
@@ -603,11 +608,10 @@ namespace sqlite {
 	// double
 	 inline database_binder& operator <<(database_binder& db, const double& val) {
 		int hresult;
-		if((hresult = sqlite3_bind_double(db._stmt.get(), db._inx, val)) != SQLITE_OK) {
+		if((hresult = sqlite3_bind_double(db._stmt.get(), db._next_index(), val)) != SQLITE_OK) {
 			errors::throw_sqlite_error(hresult, db.sql());
 		}
 
-		++db._inx;
 		return db;
 	}
 	 inline void store_result_in_db(sqlite3_context* db, const double& val) {
@@ -633,10 +637,9 @@ namespace sqlite {
 		void const* buf = reinterpret_cast<void const *>(vec.data());
 		int bytes = vec.size() * sizeof(T);
 		int hresult;
-		if((hresult = sqlite3_bind_blob(db._stmt.get(), db._inx, buf, bytes, SQLITE_TRANSIENT)) != SQLITE_OK) {
+		if((hresult = sqlite3_bind_blob(db._stmt.get(), db._next_index(), buf, bytes, SQLITE_TRANSIENT)) != SQLITE_OK) {
 			errors::throw_sqlite_error(hresult, db.sql());
 		}
-		++db._inx;
 		return db;
 	}
 	template<typename T, typename A> inline void store_result_in_db(sqlite3_context* db, const std::vector<T, A>& vec) {
@@ -666,10 +669,9 @@ namespace sqlite {
 	/* for nullptr support */
 	inline database_binder& operator <<(database_binder& db, std::nullptr_t) {
 		int hresult;
-		if((hresult = sqlite3_bind_null(db._stmt.get(), db._inx)) != SQLITE_OK) {
+		if((hresult = sqlite3_bind_null(db._stmt.get(), db._next_index())) != SQLITE_OK) {
 			errors::throw_sqlite_error(hresult, db.sql());
 		}
-		++db._inx;
 		return db;
 	}
 	 inline void store_result_in_db(sqlite3_context* db, std::nullptr_t) {
@@ -728,11 +730,10 @@ namespace sqlite {
 
 	 inline database_binder& operator <<(database_binder& db, const std::string& txt) {
 		int hresult;
-		if((hresult = sqlite3_bind_text(db._stmt.get(), db._inx, txt.data(), -1, SQLITE_TRANSIENT)) != SQLITE_OK) {
+		if((hresult = sqlite3_bind_text(db._stmt.get(), db._next_index(), txt.data(), -1, SQLITE_TRANSIENT)) != SQLITE_OK) {
 			errors::throw_sqlite_error(hresult, db.sql());
 		}
 
-		++db._inx;
 		return db;
 	}
 	 inline void store_result_in_db(sqlite3_context* db, const std::string& val) {
@@ -759,11 +760,10 @@ namespace sqlite {
 
 	 inline database_binder& operator <<(database_binder& db, const std::u16string& txt) {
 		int hresult;
-		if((hresult = sqlite3_bind_text16(db._stmt.get(), db._inx, txt.data(), -1, SQLITE_TRANSIENT)) != SQLITE_OK) {
+		if((hresult = sqlite3_bind_text16(db._stmt.get(), db._next_index(), txt.data(), -1, SQLITE_TRANSIENT)) != SQLITE_OK) {
 			errors::throw_sqlite_error(hresult, db.sql());
 		}
 
-		++db._inx;
 		return db;
 	}
 	 inline void store_result_in_db(sqlite3_context* db, const std::u16string& val) {
@@ -799,11 +799,10 @@ namespace sqlite {
 			return operator << (std::move(db), std::move(*val));
 		}
 		int hresult;
-		if((hresult = sqlite3_bind_null(db._stmt.get(), db._inx)) != SQLITE_OK) {
+		if((hresult = sqlite3_bind_null(db._stmt.get(), db._next_index())) != SQLITE_OK) {
 			errors::throw_sqlite_error(hresult, db.sql());
 		}
 
-		++db._inx;
 		return db;
 	}
 	template <typename OptionalT> inline void store_result_in_db(sqlite3_context* db, const std::optional<OptionalT>& val) {
@@ -840,11 +839,10 @@ namespace sqlite {
 			return operator << (std::move(db), std::move(*val));
 		}
 		int hresult;
-		if((hresult = sqlite3_bind_null(db._stmt.get(), db._inx)) != SQLITE_OK) {
+		if((hresult = sqlite3_bind_null(db._stmt.get(), db._next_index())) != SQLITE_OK) {
 			errors::throw_sqlite_error(hresult, db.sql());
 		}
 
-		++db._inx;
 		return db;
 	}
 	template <typename BoostOptionalT> inline void store_result_in_db(sqlite3_context* db, const boost::optional<BoostOptionalT>& val) {
