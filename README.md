@@ -117,7 +117,7 @@ ps << tmp;
 // But beware that it will execute on destruction if it wasn't executed!
 ps >> [&](int a,int b){ ... };
 
-// after a successfull execution the statment an be executed again, but the bound values are resetted.
+// after a successfull execution the statment can be executed again, but the bound values are resetted.
 // If you dont need the returned values you can execute it like this
 ps.execute();
 // or like this
