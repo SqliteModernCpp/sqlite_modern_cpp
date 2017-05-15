@@ -108,6 +108,57 @@ namespace sqlite {
 		}
 		bool used() const { return execution_started; }
 
+		template<class ...T>
+		class row_iterator {
+		public:
+			using difference_type = std::ptrdiff_t;
+			using value_type = std::tuple<T...>;
+			using pointer = const value_type*;;
+			using reference = const value_type&;
+			using iterator_category = std::input_iterator_tag;
+
+			row_iterator() = default;
+			explicit row_iterator(database_binder &binder): _binder(&binder) {
+				_binder->used(true);
+				++*this;
+			}
+
+			reference operator*() const { return _value; }
+			pointer operator->() const { return std::addressof(**this); }
+			row_iterator &operator++() {
+
+				switch(int result = sqlite3_step(_binder->_stmt.get())) {
+					case SQLITE_ROW:
+						tuple_iterate<value_type>::iterate(_value, *_binder);
+						break;
+					case SQLITE_DONE:
+						_binder = nullptr;
+						break;
+					default:
+						_binder = nullptr;
+						exceptions::throw_sqlite_error(result, _binder->sql());
+				}
+				return *this;
+			}
+
+			row_iterator operator++(int) const { auto old = *this; ++*this; return old; }
+			friend inline bool operator ==(const row_iterator &a, const row_iterator &b) {
+				return a._binder == b._binder;
+			}
+			friend inline bool operator !=(const row_iterator &a, const row_iterator &b) {
+				return !(a==b);
+			}
+
+		private:
+			database_binder *_binder = nullptr;
+			value_type _value;
+		};
+
+		template<class ...T>
+		inline auto as() &;
+		template<class ...T>
+		inline auto as() &&;
+
 	private:
 		std::shared_ptr<sqlite3> _db;
 		std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> _stmt;
@@ -292,6 +343,31 @@ namespace sqlite {
 			});
 		}
 	};
+
+	template<class ...T>
+	class owning_row_view
+	{
+	public:
+		owning_row_view(database_binder &&binder): _binder(std::move(binder)) {}
+		auto begin() { return database_binder::row_iterator<T...>(_binder); }
+		auto end() { return database_binder::row_iterator<T...>(); }
+	private:
+		database_binder _binder;
+	};
+	template<class ...T>
+	class row_view
+	{
+	public:
+		row_view(database_binder &binder): _binder(&binder) {}
+		auto begin() { return database_binder::row_iterator<T...>(*_binder); }
+		auto end() { return database_binder::row_iterator<T...>(); }
+	private:
+		database_binder *_binder;
+	};
+	template<class ...T>
+	auto database_binder::as() & { return row_view<T...>(*this); }
+	template<class ...T>
+	auto database_binder::as() && { return owning_row_view<T...>(std::move(*this)); }
 
 	namespace sql_function_binder {
 		template<
@@ -790,7 +866,7 @@ namespace sqlite {
 #ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 	template <typename OptionalT> inline database_binder& operator <<(database_binder& db, const std::optional<OptionalT>& val) {
 		if(val) {
-			return operator << (std::move(db), std::move(*val));
+			return operator << (db, std::move(*val));
 		}
 		int hresult;
 		if((hresult = sqlite3_bind_null(db._stmt.get(), db._next_index())) != SQLITE_OK) {
@@ -830,7 +906,7 @@ namespace sqlite {
 #ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
 	template <typename BoostOptionalT> inline database_binder& operator <<(database_binder& db, const boost::optional<BoostOptionalT>& val) {
 		if(val) {
-			return operator << (std::move(db), std::move(*val));
+			return operator << (db, std::move(*val));
 		}
 		int hresult;
 		if((hresult = sqlite3_bind_null(db._stmt.get(), db._next_index())) != SQLITE_OK) {
@@ -892,7 +968,7 @@ namespace sqlite {
 	void inline operator++(database_binder& db, int) { db.execute(); }
 
 	// Convert the rValue binder to a reference and call first op<<, its needed for the call that creates the binder (be carefull of recursion here!)
-	template<typename T> database_binder& operator << (database_binder&& db, const T& val) { return db << val; }
+	template<typename T> database_binder&& operator << (database_binder&& db, const T& val) { db << val; return std::move(db); }
 
 	namespace sql_function_binder {
 		template<class T>
@@ -1034,4 +1110,9 @@ namespace sqlite {
 			}
 		}
 	}
+
+	template<class ...T>
+	auto as(database_binder &binder) { return row_view<T...>(binder); }
+	template<class ...T>
+	auto as(database_binder&&binder) { return owning_row_view<T...>(std::move(binder)); }
 }
