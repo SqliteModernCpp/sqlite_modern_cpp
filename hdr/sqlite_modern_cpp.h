@@ -11,6 +11,8 @@
 #include <locale>
 #include <codecvt>
 
+#define MODERN_SQLITE_VERSION 3002008
+
 #ifdef __has_include
 #if __cplusplus > 201402 && __has_include(<optional>)
 #define MODERN_SQLITE_STD_OPTIONAL_SUPPORT
