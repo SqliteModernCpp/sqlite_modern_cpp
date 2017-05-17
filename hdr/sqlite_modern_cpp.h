@@ -790,14 +790,10 @@ namespace sqlite {
 #ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 	template <typename OptionalT> inline database_binder& operator <<(database_binder& db, const std::optional<OptionalT>& val) {
 		if(val) {
-			return operator << (std::move(db), std::move(*val));
+			return db << std::move(*val);
+		} else {
+			return db << nullptr;
 		}
-		int hresult;
-		if((hresult = sqlite3_bind_null(db._stmt.get(), db._next_index())) != SQLITE_OK) {
-			errors::throw_sqlite_error(hresult, db.sql());
-		}
-
-		return db;
 	}
 	template <typename OptionalT> inline void store_result_in_db(sqlite3_context* db, const std::optional<OptionalT>& val) {
 		if(val) {
@@ -830,14 +826,10 @@ namespace sqlite {
 #ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
 	template <typename BoostOptionalT> inline database_binder& operator <<(database_binder& db, const boost::optional<BoostOptionalT>& val) {
 		if(val) {
-			return operator << (std::move(db), std::move(*val));
+			return db << std::move(*val);
+		} else {
+			return db << nullptr;
 		}
-		int hresult;
-		if((hresult = sqlite3_bind_null(db._stmt.get(), db._next_index())) != SQLITE_OK) {
-			errors::throw_sqlite_error(hresult, db.sql());
-		}
-
-		return db;
 	}
 	template <typename BoostOptionalT> inline void store_result_in_db(sqlite3_context* db, const boost::optional<BoostOptionalT>& val) {
 		if(val) {
@@ -892,7 +884,7 @@ namespace sqlite {
 	void inline operator++(database_binder& db, int) { db.execute(); }
 
 	// Convert the rValue binder to a reference and call first op<<, its needed for the call that creates the binder (be carefull of recursion here!)
-	template<typename T> database_binder& operator << (database_binder&& db, const T& val) { return db << val; }
+	template<typename T> database_binder&& operator << (database_binder&& db, const T& val) { db << val; return std::move(db); }
 
 	namespace sql_function_binder {
 		template<class T>
