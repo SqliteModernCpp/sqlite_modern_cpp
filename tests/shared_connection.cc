@@ -6,21 +6,10 @@
 using namespace  sqlite;
 using namespace std;
 
-struct TmpFile {
-	string fname;
-
-	TmpFile(): fname(tmpnam(nullptr)) {}
-
-	~TmpFile() {
-		remove(fname.c_str());
-	}
-};
-
 int main() {
 	try {
 
-		TmpFile file;
-		database db(file.fname);
+		database db(":memory:");
 
 		{
 

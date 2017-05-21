@@ -10,12 +10,8 @@ struct TmpFile
 {
 	string fname;
 
-	TmpFile(): fname(tmpnam(nullptr)) {}
-
-	~TmpFile()
-	{
-		remove(fname.c_str());
-	}
+	TmpFile(): fname("./flags.db") { }
+	~TmpFile() { remove(fname.c_str()); }
 };
 
 #if __BYTE_ORDER == __BIG_ENDIAN
