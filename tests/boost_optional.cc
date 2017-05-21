@@ -26,21 +26,10 @@ void select(database& db, bool should_be_null) {
 	};
 }
 
-struct TmpFile {
-	string fname;
-
-	TmpFile(): fname(tmpnam(nullptr)) {}
-
-	~TmpFile() {
-		remove(fname.c_str());
-	}
-};
-
 int main() {
 	try {
 		// creates a database file 'dbfile.db' if it does not exists.
-		TmpFile file;
-		database db(file.fname);
+		database db(":memory:");
 
 		db << "drop table if exists test";
 		db <<

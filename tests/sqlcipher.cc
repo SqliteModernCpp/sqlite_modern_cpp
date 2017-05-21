@@ -10,12 +10,8 @@ struct TmpFile
 {
 	string fname;
 
-	TmpFile(): fname(tmpnam(nullptr)) {}
-
-	~TmpFile()
-	{
-		remove(fname.c_str());
-	}
+	TmpFile(): fname("./sqlcipher.db") { }
+	~TmpFile() { remove(fname.c_str()); }
 };
 
 int main()

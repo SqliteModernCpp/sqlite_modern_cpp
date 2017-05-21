@@ -7,16 +7,11 @@
 using namespace sqlite;
 using std::string;
 
-struct TmpFile
-{
+struct TmpFile {
     string fname;
 
-    TmpFile(): fname(tmpnam(nullptr)) {}
-
-    ~TmpFile()
-    {
-        remove(fname.c_str());
-    }
+    TmpFile(): fname("./trycatchblocks.db") {}
+    ~TmpFile() { remove(fname.c_str()); }
 };
 
 
@@ -24,9 +19,7 @@ class DBInterface {
     database db;
 
 public:
-    DBInterface( const string& fileName ) : db( fileName )
-    {
-    }
+    DBInterface( const string& fileName ) : db( fileName ) { }
 
     void LogRequest( const string& username, const string& ip, const string& request ) 
     {
@@ -80,7 +73,7 @@ int main( void )
     }
     catch ( ... ) {
         TmpFile tmpF;
-        DBInterface interf( tmpF.fname );
+        DBInterface interf(tmpF.fname);
         interf.LogRequest( "test", "127.0.0.1", "hello world" );
         if ( !interf.TestData() ) {
             exit( EXIT_FAILURE );

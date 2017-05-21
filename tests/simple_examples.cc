@@ -5,24 +5,11 @@
 using namespace  sqlite;
 using namespace std;
 
-struct TmpFile
-{
-	string fname;
-
-	TmpFile(): fname(tmpnam(nullptr)) {}
-
-	~TmpFile()
-	{
-		remove(fname.c_str());
-	}
-};
-
 int main()
 {
 	try
 	{
-		TmpFile file;
-		database db(file.fname);
+		database db(":memory:");
 
 		db << "CREATE TABLE foo (a integer, b string);";
 		db << "INSERT INTO foo VALUES (?, ?)" << 1 << "hello";
