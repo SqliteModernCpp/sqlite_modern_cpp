@@ -49,6 +49,21 @@ int main() {
 					exit(EXIT_FAILURE);
 				cout << _age << ' ' << _name << ' ' << _weight << endl;
 		};
+		for(auto &&row : db << "select age,name,weight from user where age > ? ;" << 21) {
+			int _age;
+			string _name;
+			double _weight;
+			row >> _age >> _name >> _weight;
+			if(_age != age || _name != name) 
+				exit(EXIT_FAILURE);
+			cout << _age << ' ' << _name << ' ' << _weight << endl;
+		}
+
+		for(std::tuple<int, string, double> row : db << "select age,name,weight from user where age > ? ;" << 21) {
+			if(std::get<int>(row) != age || std::get<string>(row) != name) 
+				exit(EXIT_FAILURE);
+			cout << std::get<int>(row) << ' ' << std::get<string>(row) << ' ' << std::get<double>(row) << endl;
+		}
 
 		// selects the count(*) from user table
 		// note that you can extract a single culumn single row result only to : int,long,long,float,double,string,u16string

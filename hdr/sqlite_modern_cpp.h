@@ -81,6 +81,7 @@ namespace sqlite {
 		static void iterate(Tuple&, database_binder&) {}
 	};
 
+	class row_iterator;
 	class database_binder {
 
 	public:
@@ -128,6 +129,8 @@ namespace sqlite {
 			execution_started = state; 
 		}
 		bool used() const { return execution_started; }
+		row_iterator begin();
+		row_iterator end();
 
 	private:
 		std::shared_ptr<sqlite3> _db;
@@ -312,7 +315,88 @@ namespace sqlite {
 				binder<traits::arity>::run(*this, func);
 			});
 		}
+		friend class row_iterator;
 	};
+	class row_iterator {
+	public:
+		class value_type {
+		public:
+			value_type(database_binder *_binder): _binder(_binder) {};
+			template<class T>
+			value_type &operator >>(T &result) {
+				get_col_from_db(*_binder, next_index++, result);
+				return *this;
+			}
+			template<class ...Types>
+			value_type &operator >>(std::tuple<Types...>& values) {
+				assert(!next_index);
+				tuple_iterate<std::tuple<Types...>>::iterate(values, *_binder);
+				next_index = sizeof...(Types) + 1;
+				return *this;
+			}
+			explicit operator bool() {
+				return sqlite3_column_count(_binder->_stmt.get()) >= next_index;
+			}
+			template<class Type>
+			operator Type() {
+				Type value;
+				*this >> value;
+				return value;
+			}
+		private:
+			database_binder *_binder;
+			int next_index = 0;
+		};
+		using difference_type = std::ptrdiff_t;
+		using pointer = value_type*;
+		using reference = value_type&;
+		using iterator_category = std::input_iterator_tag;
+
+		row_iterator() = default;
+		explicit row_iterator(database_binder &binder): _binder(&binder) {
+			_binder->_start_execute();
+			++*this;
+		}
+
+		reference operator*() const { return value;}
+		pointer operator->() const { return std::addressof(**this); }
+		row_iterator &operator++() {
+			switch(int result = sqlite3_step(_binder->_stmt.get())) {
+				case SQLITE_ROW:
+					value = {_binder};
+					/* tuple_iterate<value_type>::iterate(_value, *_binder); */
+					break;
+				case SQLITE_DONE:
+					_binder = nullptr;
+					break;
+				default:
+					_binder = nullptr;
+					exceptions::throw_sqlite_error(result, _binder->sql());
+			}
+			return *this;
+		}
+
+		// Not well-defined
+		row_iterator operator++(int);
+		friend inline bool operator ==(const row_iterator &a, const row_iterator &b) {
+			return a._binder == b._binder;
+		}
+		friend inline bool operator !=(const row_iterator &a, const row_iterator &b) {
+			return !(a==b);
+		}
+
+	private:
+		database_binder *_binder = nullptr;
+		mutable value_type value{_binder}; // mutable, because `changing` the value is just reading it
+	};
+
+	inline row_iterator database_binder::begin() {
+		return row_iterator(*this);
+	}
+
+	inline row_iterator database_binder::end() {
+		return row_iterator();
+	}
 
 	namespace sql_function_binder {
 		template<
@@ -913,7 +997,7 @@ namespace sqlite {
 	void inline operator++(database_binder& db, int) { db.execute(); }
 
 	// Convert the rValue binder to a reference and call first op<<, its needed for the call that creates the binder (be carefull of recursion here!)
-	template<typename T> database_binder&& operator << (database_binder&& db, const T& val) { db << val; return std::move(db); }
+	template<typename T> database_binder operator << (database_binder&& db, const T& val) { db << val; return std::move(db); }
 
 	namespace sql_function_binder {
 		template<class T>
