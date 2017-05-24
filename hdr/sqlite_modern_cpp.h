@@ -95,16 +95,7 @@ namespace sqlite {
 			_stmt(std::move(other._stmt)),
 			_inx(other._inx), execution_started(other.execution_started) { }
 
-		void execute() {
-			_start_execute();
-			int hresult;
-
-			while((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {}
-
-			if(hresult != SQLITE_DONE) {
-				errors::throw_sqlite_error(hresult, sql());
-			}
-		}
+		void execute();
 		
 		std::string sql() {
 #if SQLITE_VERSION_NUMBER >= 3014000
@@ -148,15 +139,6 @@ namespace sqlite {
 			}
 			return ++_inx;
 		}
-		void _start_execute() {
-			_next_index();
-			_inx = 0;
-			used(true);
-		}
-
-		void _extract(std::function<void(void)> call_back);
-
-		void _extract_single_value(std::function<void(void)> call_back);
 
 #ifdef _MSC_VER
 		sqlite3_stmt* _prepare(const std::u16string& sql) {
@@ -178,31 +160,6 @@ namespace sqlite {
 				throw errors::more_statements("Multiple semicolon separated statements are unsupported", sql);
 			return tmp;
 		}
-
-		template <typename Type>
-		struct is_sqlite_value : public std::integral_constant<
-			bool,
-			std::is_floating_point<Type>::value
-			|| std::is_integral<Type>::value
-			|| std::is_same<std::string, Type>::value
-			|| std::is_same<std::u16string, Type>::value
-			|| std::is_same<sqlite_int64, Type>::value
-		> { };
-		template <typename Type, typename Allocator>
-		struct is_sqlite_value< std::vector<Type, Allocator> > : public std::integral_constant<
-			bool,
-			std::is_floating_point<Type>::value
-			|| std::is_integral<Type>::value
-			|| std::is_same<sqlite_int64, Type>::value
-		> { };
-#ifdef MODERN_SQLITE_STD_VARIANT_SUPPORT
-		template <typename ...Args>
-		struct is_sqlite_value< std::variant<Args...> > : public std::integral_constant<
-			bool,
-			true
-		> { };
-#endif
-
 
 		/* for vector<T, A> support */
 		template<typename T, typename A> friend database_binder& operator <<(database_binder& db, const std::vector<T, A>& val);
@@ -263,43 +220,56 @@ namespace sqlite {
 			}
 		}
 
-		template <typename Result>
-		typename std::enable_if<is_sqlite_value<Result>::value, void>::type operator>>(
-			Result& value) {
-			this->_extract_single_value([&value, this] {
-				get_col_from_db(*this, 0, value);
-			});
-		}
-
-		template<typename... Types>
-		void operator>>(std::tuple<Types...>&& values) {
-			this->_extract_single_value([&values, this] {
-				tuple_iterate<std::tuple<Types...>>::iterate(values, *this);
-			});
-		}
-
-		template <typename Function>
-		typename std::enable_if<!is_sqlite_value<Function>::value, void>::type operator>>(
-			Function&& func) {
-			typedef utility::function_traits<Function> traits;
-
-			this->_extract([&func, this]() {
-				binder<traits::arity>::run(*this, func);
-			});
-		}
 		friend class row_iterator;
 	};
+	namespace detail {
+		template <typename Type>
+		struct is_sqlite_value : public std::integral_constant<
+			bool,
+			std::is_floating_point<Type>::value
+			|| std::is_integral<Type>::value
+			|| std::is_same<std::string, Type>::value
+			|| std::is_same<std::u16string, Type>::value
+			|| std::is_same<sqlite_int64, Type>::value
+		> { };
+		template <typename Type, typename Allocator>
+		struct is_sqlite_value< std::vector<Type, Allocator> > : public std::integral_constant<
+			bool,
+			std::is_floating_point<Type>::value
+			|| std::is_integral<Type>::value
+			|| std::is_same<sqlite_int64, Type>::value
+		> { };
+		template <typename T>
+		struct is_sqlite_value< std::unique_ptr<T> > : public is_sqlite_value<T> {};
+#ifdef MODERN_SQLITE_STD_VARIANT_SUPPORT
+		template <typename ...Args>
+		struct is_sqlite_value< std::variant<Args...> > : public std::integral_constant<
+			bool,
+			true
+		> { };
+#endif
+#ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
+		template <typename T>
+		struct is_sqlite_value< std::optional<T> > : public is_sqlite_value<T> {};
+#endif
+
+#ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
+		template <typename T>
+		struct is_sqlite_value< boost::optional<T> > : public is_sqlite_value<T> {};
+#endif
+	}
+
 	class row_iterator {
 	public:
 		class value_type {
 		public:
 			value_type(database_binder *_binder): _binder(_binder) {};
 			template<class T>
-			typename std::enable_if<database_binder::is_sqlite_value<T>::value, value_type &>::type operator >>(T &result) {
+			typename std::enable_if<detail::is_sqlite_value<T>::value, value_type &>::type operator >>(T &result) {
 				get_col_from_db(*_binder, next_index++, result);
 				return *this;
 			}
-			template<class T, typename = typename std::enable_if<database_binder::is_sqlite_value<T>::value, value_type &>::type>
+			template<class T, typename = typename std::enable_if<detail::is_sqlite_value<T>::value, value_type &>::type>
 			operator T() {
 				T result;
 				*this >> result;
@@ -311,6 +281,10 @@ namespace sqlite {
 				tuple_iterate<std::tuple<Types...>>::iterate(values, *_binder);
 				next_index = sizeof...(Types) + 1;
 				return *this;
+			}
+			template<class ...Types>
+			value_type &operator >>(std::tuple<Types...>&& values) {
+				return *this >> values;
 			}
 			template<class ...Types>
 			operator std::tuple<Types...>() {
@@ -332,7 +306,9 @@ namespace sqlite {
 
 		row_iterator() = default;
 		explicit row_iterator(database_binder &binder): _binder(&binder) {
-			_binder->_start_execute();
+			_binder->_next_index();
+			_binder->_inx = 0;
+			_binder->used(true);
 			++*this;
 		}
 
@@ -342,7 +318,6 @@ namespace sqlite {
 			switch(int result = sqlite3_step(_binder->_stmt.get())) {
 				case SQLITE_ROW:
 					value = {_binder};
-					/* tuple_iterate<value_type>::iterate(_value, *_binder); */
 					break;
 				case SQLITE_DONE:
 					_binder = nullptr;
@@ -374,20 +349,53 @@ namespace sqlite {
 	inline row_iterator database_binder::end() {
 		return row_iterator();
 	}
-	void database_binder::_extract(std::function<void(void)> call_back) {
-		for(auto &&row[[maybe_unused]] : *this)
-			call_back();
+
+	namespace detail {
+		template<class Callback>
+		void _extract_single_value(database_binder &binder, Callback call_back) {
+			auto iter = binder.begin();
+			if(iter == binder.end())
+				throw errors::no_rows("no rows to extract: exactly 1 row expected", binder.sql(), SQLITE_DONE);
+
+			call_back(*iter);
+
+			if(++iter != binder.end())
+				throw errors::more_rows("not all rows extracted", binder.sql(), SQLITE_ROW);
+		}
+	}
+	void database_binder::execute() {
+		for(auto &&row : *this)
+			(void)row;
+	}
+	namespace detail {
+		template<class T> using void_t = void;
+		template<class T, class = void>
+		struct sqlite_direct_result : std::false_type {};
+		template<class T>
+		struct sqlite_direct_result<
+			T,
+			void_t<decltype(std::declval<row_iterator::value_type&>().operator>>(std::declval<T&&>()))>
+		> : std::true_type {};
+	}
+	template <typename Result>
+	inline typename std::enable_if<detail::sqlite_direct_result<Result>::value>::type operator>>(database_binder &binder, Result&& value) {
+		detail::_extract_single_value(binder, [&value] (row_iterator::value_type &row) {
+			row >> std::forward<Result>(value);
+		});
 	}
 
-	void database_binder::_extract_single_value(std::function<void(void)> call_back) {
-		auto iter = begin();
-		if(iter == end())
-			throw errors::no_rows("no rows to extract: exactly 1 row expected", sql(), SQLITE_DONE);
+	template <typename Function>
+	inline typename std::enable_if<!detail::sqlite_direct_result<Function>::value>::type operator>>(database_binder &db_binder, Function&& func) {
+		using traits = utility::function_traits<Function>;
 
-		call_back();
+		for(auto &&row : db_binder) {
+			binder<traits::arity>::run(row, func);
+		}
+	}
 
-		if(++iter != end())
-			throw errors::more_rows("not all rows extracted", sql(), SQLITE_ROW);
+	template <typename Result>
+	inline decltype(auto) operator>>(database_binder &&binder, Result&& value) {
+		return binder >> std::forward<Result>(value);
 	}
 
 	namespace sql_function_binder {
@@ -592,14 +600,13 @@ namespace sqlite {
 			std::size_t Boundary = Count
 		>
 			static typename std::enable_if<(sizeof...(Values) < Boundary), void>::type run(
-				database_binder& db,
-				Function&&       function,
-				Values&&...      values
+				row_iterator::value_type& row,
+				Function&&                function,
+				Values&&...               values
 				) {
-			typename std::remove_cv<typename std::remove_reference<nth_argument_type<Function, sizeof...(Values)>>::type>::type value{};
-			get_col_from_db(db, sizeof...(Values), value);
-
-			run<Function>(db, function, std::forward<Values>(values)..., std::move(value));
+			typename std::decay<nth_argument_type<Function, sizeof...(Values)>>::type value;
+			row >> value;
+			run<Function>(row, function, std::forward<Values>(values)..., std::move(value));
 		}
 
 		template<
@@ -608,9 +615,9 @@ namespace sqlite {
 			std::size_t Boundary = Count
 		>
 			static typename std::enable_if<(sizeof...(Values) == Boundary), void>::type run(
-				database_binder&,
-				Function&&       function,
-				Values&&...      values
+				row_iterator::value_type&,
+				Function&&                function,
+				Values&&...               values
 				) {
 			function(std::move(values)...);
 		}

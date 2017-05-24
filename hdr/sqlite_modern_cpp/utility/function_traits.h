@@ -42,10 +42,11 @@ namespace sqlite {
 		> {
 			typedef ReturnType result_type;
 
+			using argument_tuple = std::tuple<Arguments...>;
 			template <std::size_t Index>
 			using argument = typename std::tuple_element<
 				Index,
-				std::tuple<Arguments...>
+				argument_tuple
 			>::type;
 
 			static const std::size_t arity = sizeof...(Arguments);
