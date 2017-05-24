@@ -295,9 +295,15 @@ namespace sqlite {
 		public:
 			value_type(database_binder *_binder): _binder(_binder) {};
 			template<class T>
-			value_type &operator >>(T &result) {
+			typename std::enable_if<database_binder::is_sqlite_value<T>::value, value_type &>::type operator >>(T &result) {
 				get_col_from_db(*_binder, next_index++, result);
 				return *this;
+			}
+			template<class T, typename = typename std::enable_if<database_binder::is_sqlite_value<T>::value, value_type &>::type>
+			operator T() {
+				T result;
+				*this >> result;
+				return result;
 			}
 			template<class ...Types>
 			value_type &operator >>(std::tuple<Types...>& values) {
@@ -306,14 +312,14 @@ namespace sqlite {
 				next_index = sizeof...(Types) + 1;
 				return *this;
 			}
-			explicit operator bool() {
-				return sqlite3_column_count(_binder->_stmt.get()) >= next_index;
-			}
-			template<class Type>
-			operator Type() {
-				Type value;
+			template<class ...Types>
+			operator std::tuple<Types...>() {
+				std::tuple<Types...> value;
 				*this >> value;
 				return value;
+			}
+			explicit operator bool() {
+				return sqlite3_column_count(_binder->_stmt.get()) >= next_index;
 			}
 		private:
 			database_binder *_binder;
@@ -342,7 +348,6 @@ namespace sqlite {
 					_binder = nullptr;
 					break;
 				default:
-					_binder = nullptr;
 					exceptions::throw_sqlite_error(result, _binder->sql());
 			}
 			return *this;
