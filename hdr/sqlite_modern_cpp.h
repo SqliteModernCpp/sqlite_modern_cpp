@@ -154,37 +154,9 @@ namespace sqlite {
 			used(true);
 		}
 
-		void _extract(std::function<void(void)> call_back) {
-			int hresult;
-			_start_execute();
+		void _extract(std::function<void(void)> call_back);
 
-			while((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {
-				call_back();
-			}
-
-			if(hresult != SQLITE_DONE) {
-				errors::throw_sqlite_error(hresult, sql());
-			}
-		}
-
-		void _extract_single_value(std::function<void(void)> call_back) {
-			int hresult;
-			_start_execute();
-
-			if((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {
-				call_back();
-			} else if(hresult == SQLITE_DONE) {
-				throw errors::no_rows("no rows to extract: exactly 1 row expected", sql(), SQLITE_DONE);
-			}
-
-			if((hresult = sqlite3_step(_stmt.get())) == SQLITE_ROW) {
-				throw errors::more_rows("not all rows extracted", sql(), SQLITE_ROW);
-			}
-
-			if(hresult != SQLITE_DONE) {
-				errors::throw_sqlite_error(hresult, sql());
-			}
-		}
+		void _extract_single_value(std::function<void(void)> call_back);
 
 #ifdef _MSC_VER
 		sqlite3_stmt* _prepare(const std::u16string& sql) {
@@ -396,6 +368,21 @@ namespace sqlite {
 
 	inline row_iterator database_binder::end() {
 		return row_iterator();
+	}
+	void database_binder::_extract(std::function<void(void)> call_back) {
+		for(auto &&row[[maybe_unused]] : *this)
+			call_back();
+	}
+
+	void database_binder::_extract_single_value(std::function<void(void)> call_back) {
+		auto iter = begin();
+		if(iter == end())
+			throw errors::no_rows("no rows to extract: exactly 1 row expected", sql(), SQLITE_DONE);
+
+		call_back();
+
+		if(++iter != end())
+			throw errors::more_rows("not all rows extracted", sql(), SQLITE_ROW);
 	}
 
 	namespace sql_function_binder {
