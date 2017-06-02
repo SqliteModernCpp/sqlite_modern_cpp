@@ -374,7 +374,7 @@ namespace sqlite {
 	};
 	inline OpenFlags operator|(const OpenFlags& a, const OpenFlags& b) {
 		return static_cast<OpenFlags>(static_cast<int>(a) | static_cast<int>(b));
-	};
+	}
 	enum class Encoding {
 		ANY = SQLITE_ANY,
 		UTF8 = SQLITE_UTF8,
@@ -958,7 +958,7 @@ namespace sqlite {
 				Values&&...      values
 		) {
 			static_cast<Functions*>(sqlite3_user_data(db))->first(std::forward<Values>(values)...);
-		};
+		}
 
 		template<
 			typename    ContextType,
