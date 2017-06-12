@@ -2629,6 +2629,47 @@ $as_echo "no" >&6; }
 
 	if test "" == ""
 	then
+		{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if compiler flag -pedantic works" >&5
+$as_echo_n "checking if compiler flag -pedantic works... " >&6; }
+	else
+		{ $as_echo "$as_me:${as_lineno-$LINENO}: checking " >&5
+$as_echo_n "checking ... " >&6; }
+	fi
+	save_CXXFLAGS="$CXXFLAGS"
+	CXXFLAGS="$CXXFLAGS -pedantic"
+
+
+
+	cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+int main(){}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  cvd_conf_test=1
+else
+  cvd_conf_test=0
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+
+
+
+
+	if test $cvd_conf_test = 1
+	then
+		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+		ts_success=yes
+	else
+		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+		CXXFLAGS="$save_CXXFLAGS"
+		ts_success=no
+	fi
+
+
+	if test "" == ""
+	then
 		{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if compiler flag -W works" >&5
 $as_echo_n "checking if compiler flag -W works... " >&6; }
 	else
