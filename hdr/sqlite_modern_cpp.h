@@ -180,7 +180,7 @@ namespace sqlite {
 			const char *remaining;
 			hresult = sqlite3_prepare_v2(_db.get(), sql.data(), -1, &tmp, &remaining);
 			if(hresult != SQLITE_OK) errors::throw_sqlite_error(hresult, sql);
-			if(!std::all_of(remaining, sql.data() + sql.size(), [](char ch) {return std::isblank(ch);}))
+			if(!std::all_of(remaining, sql.data() + sql.size(), [](char ch) {return std::isspace(ch);}))
 				throw errors::more_statements("Multiple semicolon separated statements are unsupported", sql);
 			return tmp;
 		}

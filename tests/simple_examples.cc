@@ -11,7 +11,7 @@ int main()
 	{
 		database db(":memory:");
 
-		db << "CREATE TABLE foo (a integer, b string);";
+		db << "CREATE TABLE foo (a integer, b string);\n";
 		db << "INSERT INTO foo VALUES (?, ?)" << 1 << "hello";
 		db << "INSERT INTO foo VALUES (?, ?)" << 2 << "world";
 
