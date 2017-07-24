@@ -269,12 +269,6 @@ namespace sqlite {
 				get_col_from_db(*_binder, next_index++, result);
 				return *this;
 			}
-			template<class T, typename = typename std::enable_if<detail::is_sqlite_value<T>::value, value_type &>::type>
-			operator T() {
-				T result;
-				*this >> result;
-				return result;
-			}
 			template<class ...Types>
 			value_type &operator >>(std::tuple<Types...>& values) {
 				assert(!next_index);
