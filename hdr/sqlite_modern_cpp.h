@@ -30,16 +30,20 @@
   template<class T>
   using optional = std::optional<T>;
   #define MODERN_SQLITE_OPTIONAL_SUPPORT
-#elif _MODERN_SQLITE_EXPERIMENTAL_OPTIONAL_SUPPORT && __has_include(<experimental/optional>)
-  #include <experimental/optional>
-  template<class T>
-  using optional = std::experimental::optional<T>;
-  #define MODERN_SQLITE_OPTIONAL_SUPPORT
-#elif _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
-  #include <boost/optional.hpp>
-  template<class T>
-  using optional = boost::optional<T>;
-  #define MODERN_SQLITE_OPTIONAL_SUPPORT
+#elif __has_include(<experimental/optional>)
+  #ifdef _MODERN_SQLITE_EXPERIMENTAL_OPTIONAL_SUPPORT
+    #include <experimental/optional>
+    template<class T>
+    using optional = std::experimental::optional<T>;
+    #define MODERN_SQLITE_OPTIONAL_SUPPORT
+  #endif
+#else
+  #ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
+    #include <boost/optional.hpp>
+    template<class T>
+    using optional = boost::optional<T>;
+    #define MODERN_SQLITE_OPTIONAL_SUPPORT
+  #endif
 #endif
 
 #include <sqlite3.h>
