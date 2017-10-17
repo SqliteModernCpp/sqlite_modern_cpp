@@ -27,6 +27,8 @@
 
 #ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 #include <optional>
+#elif _MODERN_SQLITE_EXPERIMENTAL_OPTIONAL_SUPPORT && __has_include(<experimental/optional>)
+#include <experimental/optional>
 #endif
 
 #ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
