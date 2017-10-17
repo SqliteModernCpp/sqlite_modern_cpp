@@ -16,6 +16,10 @@
 #ifdef __has_include
 #if __cplusplus > 201402 && __has_include(<optional>)
 #define MODERN_SQLITE_STD_OPTIONAL_SUPPORT
+#elif __has_include(<experimental/optional>)
+#ifdef _MODERN_SQLITE_EXPERIMENTAL_OPTIONAL_SUPPORT
+#define MODERN_SQLITE_EXPERIMENTAL_OPTIONAL_SUPPORT
+#endif
 #endif
 #endif
 
@@ -27,7 +31,9 @@
 
 #ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 #include <optional>
-#elif _MODERN_SQLITE_EXPERIMENTAL_OPTIONAL_SUPPORT && __has_include(<experimental/optional>)
+#endif
+
+#ifdef MODERN_SQLITE_EXPERIMENTAL_OPTIONAL_SUPPORT
 #include <experimental/optional>
 #endif
 
@@ -239,9 +245,16 @@ namespace sqlite {
 		friend database_binder& operator <<(database_binder& db, const std::u16string& txt);
 
 
-#ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
-		template <typename OptionalT> friend database_binder& operator <<(database_binder& db, const std::optional<OptionalT>& val);
-		template <typename OptionalT> friend void get_col_from_db(database_binder& db, int inx, std::optional<OptionalT>& o);
+#ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT || MODERN_SQLITE_EXPERIMENTAL_OPTIONAL_SUPPORT
+		#ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
+		template<class T>
+		using optional = std::optional<T>;
+		#else
+		template<class T>
+		using optional = std::experimental::optional<T>;
+		#endif
+		template <typename OptionalT> friend database_binder& operator <<(database_binder& db, const optional<OptionalT>& val);
+		template <typename OptionalT> friend void get_col_from_db(database_binder& db, int inx, optional<OptionalT>& o);
 #endif
 
 #ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
@@ -791,22 +804,22 @@ namespace sqlite {
 	}
 
 	// std::optional support for NULL values
-#ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
-	template <typename OptionalT> inline database_binder& operator <<(database_binder& db, const std::optional<OptionalT>& val) {
+#ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT || MODERN_SQLITE_EXPERIMENTAL_OPTIONAL_SUPPORT
+	template <typename OptionalT> inline database_binder& operator <<(database_binder& db, const optional<OptionalT>& val) {
 		if(val) {
 			return db << std::move(*val);
 		} else {
 			return db << nullptr;
 		}
 	}
-	template <typename OptionalT> inline void store_result_in_db(sqlite3_context* db, const std::optional<OptionalT>& val) {
+	template <typename OptionalT> inline void store_result_in_db(sqlite3_context* db, const optional<OptionalT>& val) {
 		if(val) {
 			store_result_in_db(db, *val);
 		}
 		sqlite3_result_null(db);
 	}
 
-	template <typename OptionalT> inline void get_col_from_db(database_binder& db, int inx, std::optional<OptionalT>& o) {
+	template <typename OptionalT> inline void get_col_from_db(database_binder& db, int inx, optional<OptionalT>& o) {
 		if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
 			o.reset();
 		} else {
@@ -815,7 +828,7 @@ namespace sqlite {
 			o = std::move(v);
 		}
 	}
-	template <typename OptionalT> inline void get_val_from_db(sqlite3_value *value, std::optional<OptionalT>& o) {
+	template <typename OptionalT> inline void get_val_from_db(sqlite3_value *value, optional<OptionalT>& o) {
 		if(sqlite3_value_type(value) == SQLITE_NULL) {
 			o.reset();
 		} else {
