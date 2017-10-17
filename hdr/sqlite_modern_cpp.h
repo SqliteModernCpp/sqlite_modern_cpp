@@ -35,6 +35,7 @@
 
 #ifdef MODERN_SQLITE_EXPERIMENTAL_OPTIONAL_SUPPORT
 #include <experimental/optional>
+#define MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 #endif
 
 #ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
@@ -245,13 +246,13 @@ namespace sqlite {
 		friend database_binder& operator <<(database_binder& db, const std::u16string& txt);
 
 
-#ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT || MODERN_SQLITE_EXPERIMENTAL_OPTIONAL_SUPPORT
-		#ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
-		template<class T>
-		using optional = std::optional<T>;
-		#else
+#ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
+		#ifdef MODERN_SQLITE_EXPERIMENTAL_OPTIONAL_SUPPORT
 		template<class T>
 		using optional = std::experimental::optional<T>;
+		#else
+		template<class T>
+		using optional = std::optional<T>;
 		#endif
 		template <typename OptionalT> friend database_binder& operator <<(database_binder& db, const optional<OptionalT>& val);
 		template <typename OptionalT> friend void get_col_from_db(database_binder& db, int inx, optional<OptionalT>& o);
@@ -804,7 +805,7 @@ namespace sqlite {
 	}
 
 	// std::optional support for NULL values
-#ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT || MODERN_SQLITE_EXPERIMENTAL_OPTIONAL_SUPPORT
+#ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 	template <typename OptionalT> inline database_binder& operator <<(database_binder& db, const optional<OptionalT>& val) {
 		if(val) {
 			return db << std::move(*val);
