@@ -53,6 +53,18 @@
 #endif
 
 namespace sqlite {
+
+		// std::optional support for NULL values
+	#ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
+	#ifdef MODERN_SQLITE_EXPERIMENTAL_OPTIONAL_SUPPORT
+	template<class T>
+	using optional = std::experimental::optional<T>;
+	#else
+	template<class T>
+	using optional = std::optional<T>;
+	#endif
+	#endif
+
 	class database;
 	class database_binder;
 
@@ -247,13 +259,6 @@ namespace sqlite {
 
 
 #ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
-		#ifdef MODERN_SQLITE_EXPERIMENTAL_OPTIONAL_SUPPORT
-		template<class T>
-		using optional = std::experimental::optional<T>;
-		#else
-		template<class T>
-		using optional = std::optional<T>;
-		#endif
 		template <typename OptionalT> friend database_binder& operator <<(database_binder& db, const optional<OptionalT>& val);
 		template <typename OptionalT> friend void get_col_from_db(database_binder& db, int inx, optional<OptionalT>& o);
 #endif
