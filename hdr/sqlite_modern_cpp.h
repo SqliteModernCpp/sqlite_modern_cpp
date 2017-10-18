@@ -17,9 +17,7 @@
 #if __cplusplus > 201402 && __has_include(<optional>)
 #define MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 #elif __has_include(<experimental/optional>)
-#ifdef _MODERN_SQLITE_EXPERIMENTAL_OPTIONAL_SUPPORT
 #define MODERN_SQLITE_EXPERIMENTAL_OPTIONAL_SUPPORT
-#endif
 #endif
 #endif
 
