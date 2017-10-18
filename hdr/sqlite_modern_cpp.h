@@ -825,7 +825,11 @@ namespace sqlite {
 
 	template <typename OptionalT> inline void get_col_from_db(database_binder& db, int inx, optional<OptionalT>& o) {
 		if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
+			#ifdef MODERN_SQLITE_EXPERIMENTAL_OPTIONAL_SUPPORT
+			o = std::experimental::nullopt;
+			#else
 			o.reset();
+			#endif
 		} else {
 			OptionalT v;
 			get_col_from_db(db, inx, v);
@@ -834,7 +838,11 @@ namespace sqlite {
 	}
 	template <typename OptionalT> inline void get_val_from_db(sqlite3_value *value, optional<OptionalT>& o) {
 		if(sqlite3_value_type(value) == SQLITE_NULL) {
+			#ifdef MODERN_SQLITE_EXPERIMENTAL_OPTIONAL_SUPPORT
+			o = std::experimental::nullopt;
+			#else
 			o.reset();
+			#endif
 		} else {
 			OptionalT v;
 			get_val_from_db(value, v);
