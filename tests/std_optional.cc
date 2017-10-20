@@ -8,7 +8,7 @@ using namespace std;
 #ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 void insert(database& db, bool is_null) {
 	int id = 1;
-	std::optional<int> val;
+	sqlite::optional<int> val;
 	if(!is_null) val = 5;
 
 	db << "delete from test where id = 1";
@@ -16,7 +16,7 @@ void insert(database& db, bool is_null) {
 }
 
 void select(database& db, bool should_be_null) {
-	db << "select id,val from test" >> [&](long long, std::optional<int> val) {
+	db << "select id,val from test" >> [&](long long, sqlite::optional<int> val) {
 		if(should_be_null) {
 			if(val) exit(EXIT_FAILURE);
 		} else {
