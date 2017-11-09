@@ -458,7 +458,7 @@ Package managers
 ----
 Pull requests are welcome :wink:
 - [AUR](https://aur.archlinux.org/packages/sqlite_modern_cpp/) Arch Linux
- - maintainer [Nissar Chababy](https://github.com/funilrys)
+  - maintainer [Nissar Chababy](https://github.com/funilrys)
 - Nuget (TODO [nuget.org](https://www.nuget.org/))
 - Conan (TODO [conan.io](https://conan.io/))
 
