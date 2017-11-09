@@ -461,6 +461,7 @@ Pull requests are welcome :wink:
   - maintainer [Nissar Chababy](https://github.com/funilrys)
 - Nuget (TODO [nuget.org](https://www.nuget.org/))
 - Conan (TODO [conan.io](https://conan.io/))
+- [vcpkg](https://github.com/Microsoft/vcpkg)
 
 ## License
 
