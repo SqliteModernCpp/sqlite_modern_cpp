@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <sqlite_modern_cpp.h>
-#include <endian.h>
+#include <sys/types.h>
 using namespace sqlite;
 using namespace std;
 
@@ -14,7 +14,7 @@ struct TmpFile
 	~TmpFile() { remove(fname.c_str()); }
 };
 
-#if __BYTE_ORDER == __BIG_ENDIAN
+#if BYTE_ORDER == BIG_ENDIAN
 #define OUR_UTF16 "UTF-16be"
 #else
 #define OUR_UTF16 "UTF-16le"
