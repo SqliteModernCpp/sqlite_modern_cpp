@@ -8,8 +8,6 @@
 #include <tuple>
 #include <memory>
 #include <vector>
-#include <locale>
-#include <codecvt>
 
 #define MODERN_SQLITE_VERSION 3002008
 
@@ -45,6 +43,7 @@
 #include "sqlite_modern_cpp/errors.h"
 #include "sqlite_modern_cpp/utility/function_traits.h"
 #include "sqlite_modern_cpp/utility/uncaught_exceptions.h"
+#include "sqlite_modern_cpp/utility/utf16_utf8.h"
 
 #ifdef MODERN_SQLITE_STD_VARIANT_SUPPORT
 #include "sqlite_modern_cpp/utility/variant.h"
@@ -183,15 +182,9 @@ namespace sqlite {
 			}
 		}
 
-#ifdef _MSC_VER
 		sqlite3_stmt* _prepare(const std::u16string& sql) {
-			return _prepare(std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>().to_bytes(reinterpret_cast<const wchar_t*>(sql.c_str())));
+			return _prepare(utility::utf16_to_utf8(sql));
 		}
-#else
-		sqlite3_stmt* _prepare(const std::u16string& sql) {
-			return _prepare(std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(sql));
-		}
-#endif
 
 		sqlite3_stmt* _prepare(const std::string& sql) {
 			int hresult;
@@ -421,11 +414,7 @@ namespace sqlite {
 		}
 
 		database(const std::u16string &db_name, const sqlite_config &config = {}): _db(nullptr) {
-#ifdef _MSC_VER
-			auto db_name_utf8 = std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>().to_bytes(reinterpret_cast<const wchar_t*>(db_name.c_str()));
-#else
-			auto db_name_utf8 = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>().to_bytes(db_name);
-#endif
+			auto db_name_utf8 = utility::utf16_to_utf8(db_name);
 			sqlite3* tmp = nullptr;
 			auto ret = sqlite3_open_v2(db_name_utf8.data(), &tmp, static_cast<int>(config.flags), config.zVfs);
 			_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); }); // this will close the connection eventually when no longer needed.
