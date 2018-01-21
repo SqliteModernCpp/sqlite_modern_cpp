@@ -239,7 +239,7 @@ namespace sqlite {
 #endif
 #ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 		template <typename T>
-		struct is_sqlite_value< std::optional<T> > : public is_sqlite_value<T> {};
+		struct is_sqlite_value< optional<T> > : public is_sqlite_value<T> {};
 #endif
 
 #ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
