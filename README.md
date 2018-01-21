@@ -48,13 +48,25 @@ int main() {
 
       cout << "The new record got assigned id " << db.last_insert_rowid() << endl;
 
-      // slects from user table on a condition ( age > 18 ) and executes
+      // selects from user table on a condition ( age > 18 ) and executes
       // the lambda for each row returned .
       db << "select age,name,weight from user where age > ? ;"
          << 18
          >> [&](int age, string name, double weight) {
             cout << age << ' ' << name << ' ' << weight << endl;
          };
+
+      // a for loop can be used too:
+      // with named variables
+      for(auto &&row : db << "select age,name,weight from user where age > ? ;" << 18) {
+         int age; string name; double weight;
+         row >> age >> name >> weight;
+         cout << age << ' ' << name << ' ' << weight << endl;
+      }
+      // or with a tuple
+      for(tuple<int, string, double> row : db << "select age,name,weight from user where age > ? ;" << 18) {
+         cout << get<0>(row) << ' ' << get<1>(row) << ' ' << get<2>(row) << endl;
+      }
 
       // selects the count(*) from user table
       // note that you can extract a single culumn single row result only to : int,long,long,float,double,string,u16string
