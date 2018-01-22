@@ -27,9 +27,21 @@ int main()
 		std::string sql("select 1+1");
 		long test = 0;
 		db << sql >> test;
-		
+
 		if(test != 2) exit(EXIT_FAILURE);
-		
+
+		db <<"UPDATE foo SET b=? WHERE a=?;"<<"hi" << 1L ;
+		db << "SELECT b from foo where a=?;" << 1L >> str;
+		if(str != "hi")
+		{
+			cout << "Bad result on line "  << __LINE__ << endl;
+			exit(EXIT_FAILURE);
+		}
+		if(db.rows_modified()!=1) exit(EXIT_FAILURE);
+
+		db <<"UPDATE foo SET b=?;"<<"hello world" ;
+		if(db.rows_modified()!=2) exit(EXIT_FAILURE);
+
 	}
 	catch(sqlite_exception e)
 	{
