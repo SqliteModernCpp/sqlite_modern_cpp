@@ -450,7 +450,7 @@ namespace sqlite {
 		}
 
 		sqlite3_int64 rows_modified() const {
-    	return sqlite3_changes(_db.get());
+    			return sqlite3_changes(_db.get());
 		}
 
 		template <typename Function>
