@@ -38,6 +38,7 @@ namespace sqlite {
 		class more_rows: public sqlite_exception { using sqlite_exception::sqlite_exception; };
 		class no_rows: public sqlite_exception { using sqlite_exception::sqlite_exception; };
 		class more_statements: public sqlite_exception { using sqlite_exception::sqlite_exception; }; // Prepared statements can only contain one statement
+		class invalid_utf16: public sqlite_exception { using sqlite_exception::sqlite_exception; };
 
 		static void throw_sqlite_error(const int& error_code, const std::string &sql = "") {
 			switch(error_code & 0xFF) {
