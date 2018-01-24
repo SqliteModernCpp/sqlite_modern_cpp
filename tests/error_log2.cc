@@ -5,11 +5,11 @@
 #include <stdexcept>
 #include <sqlite_modern_cpp.h>
 #include <sqlite_modern_cpp/log.h>
+#include <catch.hpp>
 using namespace sqlite;
 using namespace std;
 
-
-int main() {
+TEST_CASE("error_log works", "[log]") {
   bool error_detected = false;
   error_log(
   	[&](errors::constraint e) {
@@ -24,12 +24,5 @@ int main() {
     db << "INSERT INTO person (id,name) VALUES (?,?)" << 1 << "jack";
     // inserting again to produce error
     db << "INSERT INTO person (id,name) VALUES (?,?)" << 1 << "jack";
-  } catch (errors::constraint& e) {
-  }
-
-  if(!error_detected) {
-    exit(EXIT_FAILURE);
-  }
-  
-  exit(EXIT_SUCCESS);
+  } catch (errors::constraint& e) { }
 }
