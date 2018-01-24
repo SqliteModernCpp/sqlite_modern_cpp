@@ -306,8 +306,6 @@ namespace sqlite {
 			return *this;
 		}
 
-		// Not well-defined
-		row_iterator operator++(int);
 		friend inline bool operator ==(const row_iterator &a, const row_iterator &b) {
 			return a._binder == b._binder;
 		}
