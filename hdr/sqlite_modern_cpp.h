@@ -80,6 +80,39 @@ namespace sqlite {
 		static void iterate(Tuple&, database_binder&) {}
 	};
 
+	template<typename>
+	struct blob_t;
+
+	template<typename T, typename A>
+	struct blob_t<std::vector<T,A>> {
+	  blob_t() { }
+	  blob_t(std::vector<T,A>&& v) : vec(std::move(v)) { }
+	  std::vector<T,A> vec;
+
+		typedef T value_type;
+		typedef A allocator_type;
+	};
+
+	template<typename T, typename A>
+	struct blob_t<std::vector<T,A>&> {
+	  blob_t(std::vector<T,A>& v) : vec(v) { }
+	  std::vector<T,A>& vec;
+
+		typedef T value_type;
+		typedef A allocator_type;
+	};
+
+
+	template<typename T, typename A>
+	auto blob(std::vector<T,A>&& v) {
+	  return blob_t<std::vector<T,A>>(std::move(v));
+	};
+
+	template<typename T, typename A>
+	auto blob(std::vector<T,A>& v) {
+	  return blob_t<std::vector<T,A>&>(v);
+	};
+
 	class database_binder {
 
 	public:
@@ -103,7 +136,7 @@ namespace sqlite {
 				errors::throw_sqlite_error(hresult, sql());
 			}
 		}
-		
+
 		std::string sql() {
 #if SQLITE_VERSION_NUMBER >= 3014000
 			auto sqlite_deleter = [](void *ptr) {sqlite3_free(ptr);};
@@ -124,7 +157,7 @@ namespace sqlite {
 				_next_index();
 				--_inx;
 			}
-			execution_started = state; 
+			execution_started = state;
 		}
 		bool used() const { return execution_started; }
 
@@ -197,7 +230,7 @@ namespace sqlite {
 			return tmp;
 		}
 
-		template <typename Type>
+		template <typename OrgType, typename Type = typename std::remove_reference<OrgType>::type>
 		struct is_sqlite_value : public std::integral_constant<
 			bool,
 			std::is_floating_point<Type>::value
@@ -206,13 +239,23 @@ namespace sqlite {
 			|| std::is_same<std::u16string, Type>::value
 			|| std::is_same<sqlite_int64, Type>::value
 		> { };
+
 		template <typename Type, typename Allocator>
-		struct is_sqlite_value< std::vector<Type, Allocator> > : public std::integral_constant<
+		struct is_sqlite_value< blob_t< std::vector<Type, Allocator> > > : public std::integral_constant<
 			bool,
 			std::is_floating_point<Type>::value
 			|| std::is_integral<Type>::value
 			|| std::is_same<sqlite_int64, Type>::value
 		> { };
+
+		template <typename Type, typename Allocator>
+		struct is_sqlite_value< blob_t< std::vector<Type, Allocator>& > > : public std::integral_constant<
+			bool,
+			std::is_floating_point<Type>::value
+			|| std::is_integral<Type>::value
+			|| std::is_same<sqlite_int64, Type>::value
+		> { };
+
 #ifdef MODERN_SQLITE_STD_VARIANT_SUPPORT
 		template <typename ...Args>
 		struct is_sqlite_value< std::variant<Args...> > : public std::integral_constant<
@@ -222,9 +265,9 @@ namespace sqlite {
 #endif
 
 
-		/* for vector<T, A> support */
-		template<typename T, typename A> friend database_binder& operator <<(database_binder& db, const std::vector<T, A>& val);
-		template<typename T, typename A> friend void get_col_from_db(database_binder& db, int inx, std::vector<T, A>& val);
+		/* for blob_t support */
+		template<typename VECTOR> friend database_binder& operator <<(database_binder& db, const blob_t<VECTOR>& blb);
+		template<typename VECTOR> friend void get_col_from_db(database_binder& db, int inx, blob_t<VECTOR>& val);
 		/* for nullptr & unique_ptr support */
 		friend database_binder& operator <<(database_binder& db, std::nullptr_t);
 		template<typename T> friend database_binder& operator <<(database_binder& db, const std::unique_ptr<T>& val);
@@ -282,11 +325,21 @@ namespace sqlite {
 		}
 
 		template <typename Result>
-		typename std::enable_if<is_sqlite_value<Result>::value, void>::type operator>>(
-			Result& value) {
+		typename std::enable_if<is_sqlite_value<Result>::value, Result>::type operator>>(
+			Result&& value) {
 			this->_extract_single_value([&value, this] {
 				get_col_from_db(*this, 0, value);
 			});
+			return value;
+		}
+		template <typename T, typename A>
+		typename std::vector<T,A> operator>>(
+			blob_t<std::vector<T,A>>&& value) {
+			this->_extract_single_value([&value, this] {
+				get_col_from_db(*this, 0, value);
+			});
+			std::vector<T,A> result(std::move(value.vec));
+			return result;
 		}
 
 		template<typename... Types>
@@ -373,7 +426,7 @@ namespace sqlite {
 				Values&&...      values
 		);
 	}
-	
+
 	enum class OpenFlags {
 		READONLY = SQLITE_OPEN_READONLY,
 		READWRITE = SQLITE_OPEN_READWRITE,
@@ -637,36 +690,40 @@ namespace sqlite {
 	}
 
 	// vector<T, A>
-	template<typename T, typename A> inline database_binder& operator<<(database_binder& db, const std::vector<T, A>& vec) {
-		void const* buf = reinterpret_cast<void const *>(vec.data());
-		int bytes = vec.size() * sizeof(T);
+	template<typename VECTOR> inline database_binder& operator<<(database_binder& db, const blob_t<VECTOR>& blb) {
+		void const* buf = reinterpret_cast<void const *>(blb.vec.data());
+		int bytes = blb.vec.size() * sizeof(decltype(blb.vec.back()));
 		int hresult;
 		if((hresult = sqlite3_bind_blob(db._stmt.get(), db._next_index(), buf, bytes, SQLITE_TRANSIENT)) != SQLITE_OK) {
 			errors::throw_sqlite_error(hresult, db.sql());
 		}
 		return db;
 	}
-	template<typename T, typename A> inline void store_result_in_db(sqlite3_context* db, const std::vector<T, A>& vec) {
-		void const* buf = reinterpret_cast<void const *>(vec.data());
-		int bytes = vec.size() * sizeof(T);
+	template<typename VECTOR> inline void store_result_in_db(sqlite3_context* db, const blob_t<VECTOR>& blb) {
+		void const* buf = reinterpret_cast<void const *>(blb.vec.data());
+		int bytes = blb.vec.size() * sizeof(decltype(blb.vec.back()));
 		sqlite3_result_blob(db, buf, bytes, SQLITE_TRANSIENT);
 	}
-	template<typename T, typename A> inline void get_col_from_db(database_binder& db, int inx, std::vector<T, A>& vec) {
+	template<typename VECTOR> inline void get_col_from_db(database_binder& db, int inx, blob_t<VECTOR>& blb) {
 		if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
-			vec.clear();
+			blb.vec.clear();
 		} else {
 			int bytes = sqlite3_column_bytes(db._stmt.get(), inx);
+			using T = typename blob_t<VECTOR>::value_type;
+			using A = typename blob_t<VECTOR>::allocator_type;
 			T const* buf = reinterpret_cast<T const *>(sqlite3_column_blob(db._stmt.get(), inx));
-			vec = std::vector<T, A>(buf, buf + bytes/sizeof(T));
+			blb.vec = std::vector<T, A>(buf, buf + bytes/sizeof(T));
 		}
 	}
-	template<typename T, typename A> inline void get_val_from_db(sqlite3_value *value, std::vector<T, A>& vec) {
+	template<typename VECTOR> inline void get_val_from_db(sqlite3_value *value, blob_t<VECTOR>& blb) {
 		if(sqlite3_value_type(value) == SQLITE_NULL) {
-			vec.clear();
+			blb.vec.clear();
 		} else {
 			int bytes = sqlite3_value_bytes(value);
+			using T = typename blob_t<VECTOR>::value_type;
+			using A = typename blob_t<VECTOR>::allocator_type;
 			T const* buf = reinterpret_cast<T const *>(sqlite3_value_blob(value));
-			vec = std::vector<T, A>(buf, buf + bytes/sizeof(T));
+			blb.vec = std::vector<T, A>(buf, buf + bytes/sizeof(T));
 		}
 	}
 
