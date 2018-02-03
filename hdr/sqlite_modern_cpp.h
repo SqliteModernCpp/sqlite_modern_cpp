@@ -34,10 +34,6 @@
 #define MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 #endif
 
-#ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
-#include <boost/optional.hpp>
-#endif
-
 #include <sqlite3.h>
 
 #include "sqlite_modern_cpp/errors.h"
@@ -252,11 +248,6 @@ namespace sqlite {
 #ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 		template <typename OptionalT> friend database_binder& operator <<(database_binder& db, const optional<OptionalT>& val);
 		template <typename OptionalT> friend void get_col_from_db(database_binder& db, int inx, optional<OptionalT>& o);
-#endif
-
-#ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
-		template <typename BoostOptionalT> friend database_binder& operator <<(database_binder& db, const boost::optional<BoostOptionalT>& val);
-		template <typename BoostOptionalT> friend void get_col_from_db(database_binder& db, int inx, boost::optional<BoostOptionalT>& o);
 #endif
 
 	public:
@@ -834,42 +825,6 @@ namespace sqlite {
 			#endif
 		} else {
 			OptionalT v;
-			get_val_from_db(value, v);
-			o = std::move(v);
-		}
-	}
-#endif
-
-	// boost::optional support for NULL values
-#ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
-	template <typename BoostOptionalT> inline database_binder& operator <<(database_binder& db, const boost::optional<BoostOptionalT>& val) {
-		if(val) {
-			return db << std::move(*val);
-		} else {
-			return db << nullptr;
-		}
-	}
-	template <typename BoostOptionalT> inline void store_result_in_db(sqlite3_context* db, const boost::optional<BoostOptionalT>& val) {
-		if(val) {
-			store_result_in_db(db, *val);
-		}
-		sqlite3_result_null(db);
-	}
-
-	template <typename BoostOptionalT> inline void get_col_from_db(database_binder& db, int inx, boost::optional<BoostOptionalT>& o) {
-		if(sqlite3_column_type(db._stmt.get(), inx) == SQLITE_NULL) {
-			o.reset();
-		} else {
-			BoostOptionalT v;
-			get_col_from_db(db, inx, v);
-			o = std::move(v);
-		}
-	}
-	template <typename BoostOptionalT> inline void get_val_from_db(sqlite3_value *value, boost::optional<BoostOptionalT>& o) {
-		if(sqlite3_value_type(value) == SQLITE_NULL) {
-			o.reset();
-		} else {
-			BoostOptionalT v;
 			get_val_from_db(value, v);
 			o = std::move(v);
 		}

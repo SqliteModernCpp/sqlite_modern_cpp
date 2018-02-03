@@ -322,12 +322,7 @@ int main() {
    };
 }
 ```
-
-If you do not have C++17 support, you can use boost optional instead by defining `_MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT` before importing the `sqlite_modern_cpp` header.
-
 If the optional library is not available, the experimental/optional one will be used instead.
-
-**Note: boost support is deprecated and will be removed in future versions.**
 
 Variant type support (C++17)
 ----
