@@ -7,7 +7,3 @@ config.status
 compile_commands.json
 build/
 
-Makefile
-
-tests/*
-!tests/*.cc
