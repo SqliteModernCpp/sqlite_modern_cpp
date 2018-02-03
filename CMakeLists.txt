@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 OPTION(ENABLE_SQLCIPHER_TESTS "enable sqlchipher test")
 
 # Creates the file compile_commands.json in the build directory.
-SET( CMAKE_EXPORT_COMPILE_COMMANDS ON )
+SET(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set (CMAKE_CXX_STANDARD 14)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
@@ -26,12 +26,9 @@ find_package(sqlite3 CONFIG REQUIRED)
 set(TEST_SOURCE_DIR             ${CMAKE_SOURCE_DIR}/tests)
 file(GLOB TEST_SOURCES          ${TEST_SOURCE_DIR}/*.cc)
 
-message(STATUS ${ENABLE_SQLCIPHER_TESTS})
 IF(NOT ENABLE_SQLCIPHER_TESTS)
     list(REMOVE_ITEM TEST_SOURCES ${TEST_SOURCE_DIR}/sqlcipher.cc)
 ENDIF(NOT ENABLE_SQLCIPHER_TESTS)
-message(STATUS ${TEST_SOURCES})
-message(STATUS ${TEST_SOURCE_DIR}/sqlcipher.cc)
 
 enable_testing()
 
@@ -40,10 +37,11 @@ target_include_directories(sqlite_modern_cpp INTERFACE hdr/)
 
 add_executable(tests ${TEST_SOURCES})
 target_include_directories(tests INTERFACE ${SQLITE3_INCLUDE_DIRS})
-target_link_libraries(tests Catch::Catch sqlite_modern_cpp sqlite3::sqlite3)
-IF(ENABLE_SQLCIPHER_TESTS)
-    set_target_properties(tests PROPERTIES COMPILE_FLAGS '-lsqlcipher')
-ENDIF(ENABLE_SQLCIPHER_TESTS)
+if(ENABLE_SQLCIPHER_TESTS)
+    target_link_libraries(tests Catch::Catch sqlite_modern_cpp sqlite3::sqlite3 -lsqlcipher)
+else()
+    target_link_libraries(tests Catch::Catch sqlite_modern_cpp sqlite3::sqlite3)
+endif()
 
 ParseAndAddCatchTests(tests)
 
