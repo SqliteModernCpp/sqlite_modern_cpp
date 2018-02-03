@@ -1,8 +1,9 @@
-// Fixing https://github.com/aminroosta/sqlite_modern_cpp/issues/63
+// Fixing https://github.com/SqliteModernCpp/sqlite_modern_cpp/issues/63
 #include <iostream>
 #include <cstdlib>
 #include <sqlite_modern_cpp.h>
 #include <memory>
+#include <catch.hpp>
 using namespace  sqlite;
 using namespace std;
 
@@ -19,20 +20,12 @@ struct dbFront {
 };
 
 
-int main() {
+TEST_CASE("database lifecycle", "move_ctor") {
 
-  try {
-  	dbFront dbf;
-  }
-  catch(sqlite_exception e) {
-    cout << "Unexpected error " << e.what() << endl;
-    exit(EXIT_FAILURE);
-  }
-  catch(...) {
-    cout << "Unknown error\n";
-    exit(EXIT_FAILURE);
-  }
+  bool failed = false;
+  try { dbFront dbf; }
+  catch(sqlite_exception& e) { failed = true; }
+  catch(...) { failed = true; }
 
-  cout << "OK\n";
-  exit(EXIT_SUCCESS);
+  REQUIRE(failed == false);
 }

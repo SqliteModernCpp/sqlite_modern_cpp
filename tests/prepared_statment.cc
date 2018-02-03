@@ -1,98 +1,102 @@
 #include <iostream>
 #include <cstdlib>
 #include <sqlite_modern_cpp.h>
+#include <catch.hpp>
 using namespace  sqlite;
 using namespace std;
 
-int main() {
-	try {
+TEST_CASE("prepared statements work", "[prepared_statement]") {
+    database db(":memory:");
 
-		database db(":memory:");
+    auto pps = db << "select ?"; // get a prepared parsed and ready statment
 
-		auto pps = db << "select ?"; // get a prepared parsed and ready statment
+    int test = 4;
+    pps << test; // set a bound var
 
-		int test = 4;
-		pps << test; // set a bound var
+    pps >> test; // execute statement
 
-		pps >> test; // execute statement
+    REQUIRE(test == 4);
 
-		pps << 4; // bind a rvalue
-		pps++; // and execute
+    pps << 4; // bind a rvalue
+    pps++; // and execute
 
-		pps << 8 >> test;
+    pps << 8 >> test;
 
-		auto pps2 = db << "select 1,2,3,4,5"; // multiple extract test
+    REQUIRE(test == 8);
 
-		pps2 >> [](int a, int b, int c, int d, int e) {
-			std::cout << "L " << a << b << c << d << e << "\n"; // still works as intended
-		};
+    auto pps2 = db << "select 1,2"; // multiple extract test
 
-		auto pps3 = db << "select ?,?,?";
+    pps2 >> [](int a, int b) {
+        REQUIRE(a == 1);
+        REQUIRE(b == 2);
+    };
 
-		pps3 << 1 << test << 5 >> [](int a, int b, int, int c) {
-			std::cout << "L2 " << a << b << c << "\n"; // still works as intended
-		};
+    auto pps3 = db << "select ?,?,?";
 
-		db << "select ?,?" << test << 5 >> test; // and mow everything together
+    test = 2;
+    pps3 << 1 << test << 3 >> [](int a, int b, int c) {
+        REQUIRE(a == 1);
+        REQUIRE(b == 2);
+        REQUIRE(c == 3);
+    };
 
-		db << "select ?, ?, ?" << 1 << test << 1 >> [](int a, int b, int, int c) {
-			std::cout << "L3 " << a << b << c << "\n"; // still works as intended
-		};
+    test = 1;
+    db << "select ?,?" << test << 5 >> test; // and mow everything together
+    REQUIRE(test == 1);
 
-		db << "select ?" << test; 		// noVal		
-		db << "select ?,?" << test << 1;
-		db << "select ?,?" << 1 << test;
-		db << "select ?,?" << 1 << 1;
-		db << "select ?,?" << test << test;
+    test = 2;
+    db << "select ?,?,?" << 1 << test << 3 >> [](int a, int b, int c) {
+        REQUIRE(a == 1);
+        REQUIRE(b == 2);
+        REQUIRE(c == 3);
+    };
 
-		db << "select ?" << test >> test; 		// lVal		
-		db << "select ?,?" << test << 1 >> test;
-		db << "select ?,?" << 1 << test >> test;
-		db << "select ?,?" << 1 << 1 >> test;
-		db << "select ?,?" << test << test >> test;
+    db << "select ?" << test; 		// noVal		
+    db << "select ?,?" << test << 1;
+    db << "select ?,?" << 1 << test;
+    db << "select ?,?" << 1 << 1;
+    db << "select ?,?" << test << test;
 
-		int q = 0;
+    db << "select ?" << test >> test; 		// lVal		
+    db << "select ?,?" << test << 1 >> test;
+    db << "select ?,?" << 1 << test >> test;
+    db << "select ?,?" << 1 << 1 >> test;
+    db << "select ?,?" << test << test >> test;
 
-		db << "select ?" << test >> [&](int t) { q = t++; }; 		// rVal		
-		db << "select ?,?" << test << 1 >> [&](int t, int p) { q = t + p; };
-		db << "select ?,?" << 1 << test >> [&](int t, int p) { q = t + p; };
-		db << "select ?,?" << 1 << 1 >> [&](int t, int p) { q = t + p; };
-		db << "select ?,?" << test << test >> [&](int t, int p) { q = t + p; };
+    int q = 0;
+    test = 1;
+    db << "select ?" << test >> [&](int t) { q = t; }; 		// rVal		
+    REQUIRE(q == 1);
 
-		db << "select ?,?,?" << test << 1 << test; // mix
-		db << "select ?,?,?" << 1 << test << 1;
-		db << "select ?,?,?" << 1 << 1 << test;
-		db << "select ?,?,?" << 1 << 1 << 1;
-		db << "select ?,?,?" << test << test << test;
+    db << "select ?,?" << test << 1 >> [&](int t, int p) { q = t + p; };
+    db << "select ?,?" << 1 << test >> [&](int t, int p) { q = t + p; };
+    db << "select ?,?" << 1 << 1 >> [&](int t, int p) { q = t + p; };
+    db << "select ?,?" << test << test >> [&](int t, int p) { q = t + p; };
 
-		{
-			auto pps4 = db << "select ?,?,?"; // reuse
+    db << "select ?,?,?" << test << 1 << test; // mix
+    db << "select ?,?,?" << 1 << test << 1;
+    db << "select ?,?,?" << 1 << 1 << test;
+    db << "select ?,?,?" << 1 << 1 << 1;
+    db << "select ?,?,?" << test << test << test;
 
-			(pps4 << test << 1 << test)++;
-			(pps4 << 1 << test << 1)++;
-			(pps4 << 1 << 1 << test)++;
-			(pps4 << 1 << 1 << 1)++;
-			(pps4 << test << test << test)++;
-		}
+    {
+        auto pps4 = db << "select ?,?,?"; // reuse
 
-		{
-			auto prep = db << "select ?";
+        (pps4 << test << 1 << test)++;
+        (pps4 << 1 << test << 1)++;
+        (pps4 << 1 << 1 << test)++;
+        (pps4 << 1 << 1 << 1)++;
+        (pps4 << test << test << test)++;
+    }
 
-			prep << 5;
-			prep.execute();
-			prep << 6;
-			prep.execute();
-		}
+    {
+        auto prep = db << "select ?";
+
+        prep << 5;
+        prep.execute();
+        prep << 6;
+        prep.execute();
+    }
 
 
-	} catch(sqlite_exception e) {
-		cout << "Unexpected error " << e.what() << endl;
-		exit(EXIT_FAILURE);
-	} catch(...) {
-		cout << "Unknown error\n";
-		exit(EXIT_FAILURE);
-	}
-
-	cout << "OK\n";
-	exit(EXIT_SUCCESS);
 }

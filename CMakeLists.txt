@@ -22,10 +22,22 @@ set(CATCH_INCLUDE_DIR           ${CMAKE_BINARY_DIR}/catch-src/single_include/)
 set(TEST_SOURCE_DIR             ${CMAKE_SOURCE_DIR}/tests)
 #file(GLOB TEST_SOURCES          ${TEST_SOURCE_DIR}/*.cc)
 set(TEST_SOURCES 
-    ${TEST_SOURCE_DIR}/readme_example.cc
     ${TEST_SOURCE_DIR}/blob_example.cc
     ${TEST_SOURCE_DIR}/error_log.cc
-    ${TEST_SOURCE_DIR}/error_log2.cc
+    ${TEST_SOURCE_DIR}/exceptions.cc
+    ${TEST_SOURCE_DIR}/prepared_statment.cc
+    ${TEST_SOURCE_DIR}/lvalue_functor.cc
+    ${TEST_SOURCE_DIR}/functors.cc
+    ${TEST_SOURCE_DIR}/std_optional.cc
+    ${TEST_SOURCE_DIR}/flags.cc
+    ${TEST_SOURCE_DIR}/mov_ctor.cc
+    ${TEST_SOURCE_DIR}/shared_connection.cc
+    ${TEST_SOURCE_DIR}/trycatchblocks.cc
+    ${TEST_SOURCE_DIR}/readme_example.cc
+    ${TEST_SOURCE_DIR}/functions.cc
+    ${TEST_SOURCE_DIR}/nullptr_uniqueptr.cc
+    ${TEST_SOURCE_DIR}/simple_examples.cc
+    ${TEST_SOURCE_DIR}/variant.cc
     ${TEST_SOURCE_DIR}/exception_dont_execute.cc
     ${TEST_SOURCE_DIR}/exception_dont_execute_nested.cc
 )

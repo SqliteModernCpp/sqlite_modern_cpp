@@ -2,6 +2,7 @@
 #include<sqlite_modern_cpp.h>
 #include<string>
 #include<vector>
+#include<catch.hpp>
 using namespace  sqlite;
 using namespace std;
 
@@ -30,33 +31,22 @@ struct user {
     };
 };
 
-int main() {
+TEST_CASE("lvalue functors work", "[lvalue_functor]") {
 
-	try {
-		database db(":memory:");
+    database db(":memory:");
 
-		db <<
-			"create table if not exists user ("
-			"   age int,"
-			"   name text,"
-			"   weight real"
-			");";
+    db <<
+        "create table if not exists user ("
+        "   age int,"
+        "   name text,"
+        "   weight real"
+        ");";
 
-		db << "insert into user (age,name,weight) values (?,?,?);" << 20 << u"chandler" << 83.25;
-		db << "insert into user (age,name,weight) values (?,?,?);" << 21 << u"monika" << 86.25;
-		db << "insert into user (age,name,weight) values (?,?,?);" << 22 << u"ross" << 88.25;
+    db << "insert into user (age,name,weight) values (?,?,?);" << 20 << u"chandler" << 83.25;
+    db << "insert into user (age,name,weight) values (?,?,?);" << 21 << u"monika" << 86.25;
+    db << "insert into user (age,name,weight) values (?,?,?);" << 22 << u"ross" << 88.25;
 
-		auto users = user::all(db);
-		
-		for(auto u : users)
-			cout << u.age << ' ' << u.name << ' ' << u.weight << endl;
-        if(users.size() != 3)
-			exit(EXIT_FAILURE);
-	}
-	catch (exception& e) {
-		cerr << e.what() << endl;
-		exit(EXIT_FAILURE);
-	}
+    auto users = user::all(db);
 
-  return 0;
+    REQUIRE(users.size() == 3);
 }
