@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.0)
+OPTION(ENABLE_SQLCIPHER_TESTS "enable sqlchipher test")
 
 # Creates the file compile_commands.json in the build directory.
 SET( CMAKE_EXPORT_COMPILE_COMMANDS ON )
@@ -11,6 +12,7 @@ include("cmake/DownloadProject.CMake")
 project(SqliteModernCpp)
 
 find_package(sqlite3 REQUIRED)
+
 download_project(
     PROJ                catch
     GIT_REPOSITORY      git@github.com:catchorg/Catch2.git
@@ -21,6 +23,13 @@ download_project(
 set(CATCH_INCLUDE_DIR           ${CMAKE_BINARY_DIR}/catch-src/single_include/)
 set(TEST_SOURCE_DIR             ${CMAKE_SOURCE_DIR}/tests)
 file(GLOB TEST_SOURCES          ${TEST_SOURCE_DIR}/*.cc)
+
+message(STATUS ${ENABLE_SQLCIPHER_TESTS})
+IF(NOT ENABLE_SQLCIPHER_TESTS)
+    list(REMOVE_ITEM TEST_SOURCES ${TEST_SOURCE_DIR}/sqlcipher.cc)
+ENDIF(NOT ENABLE_SQLCIPHER_TESTS)
+message(STATUS ${TEST_SOURCES})
+message(STATUS ${TEST_SOURCE_DIR}/sqlcipher.cc)
 
 enable_testing()
 
@@ -33,6 +42,9 @@ target_include_directories(Catch INTERFACE ${CATCH_INCLUDE_DIR})
 add_executable(tests ${TEST_SOURCES})
 target_include_directories(tests INTERFACE ${SQLITE3_INCLUDE_DIRS})
 target_link_libraries(tests Catch sqlite_modern_cpp sqlite3)
+IF(ENABLE_SQLCIPHER_TESTS)
+    set_target_properties(tests PROPERTIES COMPILE_FLAGS '-lsqlcipher')
+ENDIF(ENABLE_SQLCIPHER_TESTS)
 
 ParseAndAddCatchTests(tests)
 
