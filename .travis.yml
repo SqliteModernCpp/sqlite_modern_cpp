@@ -2,6 +2,10 @@ language: cpp
 sudo: required
 dist: trusty
 
+cache:
+  directories:
+    - /home/travis/.hunter/
+
 addons:
   apt:
     sources:
