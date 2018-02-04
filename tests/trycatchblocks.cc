@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <sqlite_modern_cpp.h>
+#include <catch.hpp>
 
 using namespace sqlite;
 using std::string;
@@ -63,8 +64,7 @@ public:
     }
 };
 
-int main( void ) 
-{
+TEST_CASE("try catch blocks", "[trycatchblocks]") {
     // --------------------------------------------------------------------------
     // -- Test if writing to disk works properly from within a catch block.
     // --------------------------------------------------------------------------
@@ -75,10 +75,6 @@ int main( void )
         TmpFile tmpF;
         DBInterface interf(tmpF.fname);
         interf.LogRequest( "test", "127.0.0.1", "hello world" );
-        if ( !interf.TestData() ) {
-            exit( EXIT_FAILURE );
-        }
+        REQUIRE(interf.TestData() == true); 
     }
-
-    exit( EXIT_SUCCESS );
 }

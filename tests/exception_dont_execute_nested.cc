@@ -3,6 +3,7 @@
 #include <memory>
 #include <stdexcept>
 #include <sqlite_modern_cpp.h>
+#include <catch.hpp>
 using namespace sqlite;
 using namespace std;
 
@@ -18,15 +19,13 @@ struct A {
 		}
 	}
 };
-int main() {
+
+TEST_CASE("Nested prepered statements wont execute", "[nested_prepared_statements]") {
 #ifdef __cpp_lib_uncaught_exceptions
 	try {
 		A a;
 		throw 1;
-	} catch(int) {
-	}
-	exit(EXIT_SUCCESS);
+	} catch(int) { }
 #else
-	exit(42);
 #endif
 }

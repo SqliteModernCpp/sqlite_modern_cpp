@@ -322,12 +322,7 @@ int main() {
    };
 }
 ```
-
-If you do not have C++17 support, you can use boost optional instead by defining `_MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT` before importing the `sqlite_modern_cpp` header.
-
 If the optional library is not available, the experimental/optional one will be used instead.
-
-**Note: boost support is deprecated and will be removed in future versions.**
 
 Variant type support (C++17)
 ----
@@ -438,17 +433,22 @@ NDK support
 Just Make sure you are using the full path of your database file :
 `sqlite::database db("/data/data/com.your.package/dbfile.db")`.
 
-Building and Installing
+Installation
 ----
+The project is header only.  
+Simply point your compiler at the hdr/ directory.  
 
-The usual way works for installing:
+Contributing
+----
+Install cmake and build the project.  
+Dependencies will be installed automatically (using hunter).  
 
 ```bash
-./configure && make && sudo make install
-
+mkdir build
+cd ./build
+cmake ..
+make
 ```
-
-Note, there's nothing to make, so you there's no need to run configure and you can simply point your compiler at the hdr/ directory.
 
 Breaking Changes
 ----

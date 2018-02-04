@@ -5,34 +5,59 @@
 #include <stdexcept>
 #include <sqlite_modern_cpp.h>
 #include <sqlite_modern_cpp/log.h>
+#include <catch.hpp>
 using namespace sqlite;
 using namespace std;
 
+struct TrackErrors {
+    TrackErrors() 
+        : constraint_called{false}, primarykey_called{false}
+    {
+          error_log(
+            [this](errors::constraint) {
+                constraint_called = true;
+            },
+            [this](errors::constraint_primarykey e) {
+                primarykey_called = true;
+            }
+            // We are not registering the unique key constraint:
+            // For a unique key error the first handler (errors::constraint) will be called instead.
+          );
+    }
 
-int main() {
-  bool error_detected = false;
-  error_log(
-  	[&](errors::constraint) {
-    	cerr << "Wrong error detected!" << endl;
-  	},
-  	[&](errors::constraint_primarykey e) {
-    	cerr << e.get_code() << '/' << e.get_extended_code() << ": " << e.what() << endl;
-    	error_detected = true;
-  	}
-  );
+    bool constraint_called;
+    bool primarykey_called;
+    /* bool unique_called; */
+};
+
+// Run before main, before any other sqlite function.
+static TrackErrors track;
+
+
+TEST_CASE("error_log works", "[log]") {
   database db(":memory:");
-  db << "CREATE TABLE person (id integer primary key not null, name TEXT);";
+  db << "CREATE TABLE person (id integer primary key not null, name TEXT unique);";
 
-  try {
-    db << "INSERT INTO person (id,name) VALUES (?,?)" << 1 << "jack";
-    // inserting again to produce error
-    db << "INSERT INTO person (id,name) VALUES (?,?)" << 1 << "jack";
-  } catch (errors::constraint& e) {
+  SECTION("An extended error code gets called when registered") {
+      try {
+        db << "INSERT INTO person (id,name) VALUES (?,?)" << 1 << "jack";
+        // triger primarykey constraint of 'id'
+        db << "INSERT INTO person (id,name) VALUES (?,?)" << 1 << "bob";
+      } catch (errors::constraint& e) { }
+      REQUIRE(track.primarykey_called == true);
+      REQUIRE(track.constraint_called == false);
+      track.primarykey_called = false;
   }
 
-  if(!error_detected) {
-    exit(EXIT_FAILURE);
+  SECTION("Parent gets called when the exact error code is not registered") {
+      try {
+        db << "INSERT INTO person (id,name) VALUES (?,?)" << 1 << "jack";
+        // trigger unique constraint of 'name'
+        db << "INSERT INTO person (id,name) VALUES (?,?)" << 2 << "jack";
+      } catch (errors::constraint& e) { }
+
+      REQUIRE(track.primarykey_called == false);
+      REQUIRE(track.constraint_called == true);
+      track.constraint_called = false;
   }
-  
-  exit(EXIT_SUCCESS);
 }
