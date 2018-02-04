@@ -449,8 +449,8 @@ namespace sqlite {
 			return sqlite3_last_insert_rowid(_db.get());
 		}
 
-		sqlite3_int64 rows_modified() const {
-    			return sqlite3_changes(_db.get());
+		int rows_modified() const {
+			return sqlite3_changes(_db.get());
 		}
 
 		template <typename Function>
