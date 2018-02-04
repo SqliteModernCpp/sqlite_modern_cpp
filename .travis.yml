@@ -13,17 +13,14 @@ addons:
       - ubuntu-toolchain-r-test
       - george-edison55-precise-backports
     packages:
-      - gcc-5
       - g++-5
-      - libsqlite3-dev
       - libsqlcipher-dev
-      - cmake-data
       - cmake
 
 before_install:
   - export CXX="g++-5" CC="gcc-5"
 
-script: mkdir build && cd ./build && cmake .. && make && ./tests
+script: mkdir build && cd ./build && cmake .. && cmake --build . && ctest .
 
 # TODO: fix sqlcipher test
 # script: mkdir build && cd ./build && cmake -DENABLE_SQLCIPHER_TESTS=ON .. && make && ./tests

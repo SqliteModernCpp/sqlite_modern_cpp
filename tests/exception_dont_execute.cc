@@ -8,7 +8,7 @@ using namespace sqlite;
 using namespace std;
 
 
-TEST_CASE("Prepered statement will not execute on exceptions", "[prepared_statements]") {
+TEST_CASE("Prepared statement will not execute on exceptions", "[prepared_statements]") {
 	database db(":memory:");
 	db << "CREATE TABLE person (id integer primary key not null, name TEXT not null);";
 

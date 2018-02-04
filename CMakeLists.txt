@@ -7,8 +7,7 @@ set (CMAKE_CXX_STANDARD 14)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 include("cmake/HunterGate.cmake")
-include("cmake/ParseAndAddCatchTests.cmake")
-include("cmake/DownloadProject.CMake")
+include("cmake/Catch.cmake")
 
 HunterGate(
     URL "https://github.com/ruslo/hunter/archive/v0.19.227.tar.gz"
@@ -43,7 +42,7 @@ else()
     target_link_libraries(tests Catch::Catch sqlite_modern_cpp sqlite3::sqlite3)
 endif()
 
-ParseAndAddCatchTests(tests)
+catch_discover_tests(tests)
 
 # Place the file in the source directory, permitting us to place a single configuration file for YCM there.
 # YCM is the code-completion engine for (neo)vim https://github.com/Valloric/YouCompleteMe

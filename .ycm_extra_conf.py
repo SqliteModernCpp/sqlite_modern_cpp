@@ -15,20 +15,14 @@ compilation_database_folder = DirectoryOfThisScript()
 flags = [
     '-Wall',
     '-std=c++14',
-    '-stdlib=libc++',
     '-x',
     'c++',
-    '-I',
-    '.',
     '-isystem', '/usr/local/include',
     '-isystem', '/usr/include',
     '-I.',
 ]
 
-if compilation_database_folder:
-    database = ycm_core.CompilationDatabase(compilation_database_folder)
-else:
-    database = None
+database = ycm_core.CompilationDatabase(compilation_database_folder)
 
 SOURCE_EXTENSIONS = [ '.cpp', '.cxx', '.cc', '.c', '.m', '.mm' ]
 
