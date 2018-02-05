@@ -360,7 +360,7 @@ namespace sqlite {
 				throw errors::more_rows("not all rows extracted", binder.sql(), SQLITE_ROW);
 		}
 	}
-	void database_binder::execute() {
+	inline void database_binder::execute() {
 		for(auto &&row : *this)
 			(void)row;
 	}
