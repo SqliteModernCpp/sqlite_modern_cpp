@@ -37,6 +37,18 @@ TEST_CASE("README Example Works", "[readme]") {
             REQUIRE((_age == age && _name == name));
     };
 
+    for(auto &&row : db << "select age,name,weight from user where age > ? ;" << 21) {
+      int _age;
+      string _name;
+      double _weight;
+      row >> _age >> _name >> _weight;
+      REQUIRE((_age == age && _name == name));
+    }
+
+    for(std::tuple<int, string, double> row : db << "select age,name,weight from user where age > ? ;" << 21) {
+      REQUIRE((std::get<int>(row) == age && std::get<string>(row) == name));
+    }
+
     // selects the count(*) from user table
     // note that you can extract a single culumn single row result only to : int,long,long,float,double,string,u16string
     int count = 0;
