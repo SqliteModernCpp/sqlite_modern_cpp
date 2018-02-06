@@ -80,7 +80,7 @@ namespace sqlite {
 			_inx(other._inx), execution_started(other.execution_started) { }
 
 		void execute();
-		
+
 		std::string sql() {
 #if SQLITE_VERSION_NUMBER >= 3014000
 			auto sqlite_deleter = [](void *ptr) {sqlite3_free(ptr);};
@@ -101,7 +101,7 @@ namespace sqlite {
 				_next_index();
 				--_inx;
 			}
-			execution_started = state; 
+			execution_started = state;
 		}
 		bool used() const { return execution_started; }
 		row_iterator begin();
@@ -445,7 +445,7 @@ namespace sqlite {
 				Values&&...      values
 		);
 	}
-	
+
 	enum class OpenFlags {
 		READONLY = SQLITE_OPEN_READONLY,
 		READWRITE = SQLITE_OPEN_READWRITE,
@@ -519,6 +519,10 @@ namespace sqlite {
 
 		sqlite3_int64 last_insert_rowid() const {
 			return sqlite3_last_insert_rowid(_db.get());
+		}
+
+		int rows_modified() const {
+			return sqlite3_changes(_db.get());
 		}
 
 		template <typename Function>

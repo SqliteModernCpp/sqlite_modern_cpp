@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <sqlite_modern_cpp.h>
 #include <catch.hpp>
-using namespace  sqlite;
+using namespace sqlite;
 using namespace std;
 
 TEST_CASE("simple examples", "[examples]") {
@@ -23,5 +23,14 @@ TEST_CASE("simple examples", "[examples]") {
     db << sql >> test;
 
     REQUIRE(test == 2);
+    
+    db << "UPDATE foo SET b=? WHERE a=?;" << "hi" << 1L;
+    db << "SELECT b FROM foo WHERE a=?;" << 1L >> str;
 
+    REQUIRE(str == "hi");
+    REQUIRE(db.rows_modified() == 1);
+    
+    db << "UPDATE foo SET b=?;" << "hello world";
+
+    REQUIRE(db.rows_modified() == 2);
 }
