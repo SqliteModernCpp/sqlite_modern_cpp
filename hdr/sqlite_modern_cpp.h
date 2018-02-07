@@ -127,42 +127,6 @@ namespace sqlite {
 
 		friend class row_iterator;
 	};
-	namespace detail {
-		template <typename Type>
-		struct is_sqlite_value : public std::integral_constant<
-			bool,
-			std::is_floating_point<Type>::value
-			|| std::is_integral<Type>::value
-			|| std::is_same<std::string, Type>::value
-			|| std::is_same<std::u16string, Type>::value
-			|| std::is_same<sqlite_int64, Type>::value
-		> { };
-		template <typename Type, typename Allocator>
-		struct is_sqlite_value< std::vector<Type, Allocator> > : public std::integral_constant<
-			bool,
-			std::is_floating_point<Type>::value
-			|| std::is_integral<Type>::value
-			|| std::is_same<sqlite_int64, Type>::value
-		> { };
-		template <typename T>
-		struct is_sqlite_value< std::unique_ptr<T> > : public is_sqlite_value<T> {};
-#ifdef MODERN_SQLITE_STD_VARIANT_SUPPORT
-		template <typename ...Args>
-		struct is_sqlite_value< std::variant<Args...> > : public std::integral_constant<
-			bool,
-			true
-		> { };
-#endif
-#ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
-		template <typename T>
-		struct is_sqlite_value< optional<T> > : public is_sqlite_value<T> {};
-#endif
-
-#ifdef _MODERN_SQLITE_BOOST_OPTIONAL_SUPPORT
-		template <typename T>
-		struct is_sqlite_value< boost::optional<T> > : public is_sqlite_value<T> {};
-#endif
-	}
 
 	class row_iterator {
 	public:
@@ -170,7 +134,7 @@ namespace sqlite {
 		public:
 			value_type(database_binder *_binder): _binder(_binder) {};
 			template<class T>
-			typename std::enable_if<detail::is_sqlite_value<T>::value, value_type &>::type operator >>(T &result) {
+			typename std::enable_if<is_sqlite_value<T>::value, value_type &>::type operator >>(T &result) {
 				get_col_from_db(_binder->_stmt.get(), next_index++, result);
 				return *this;
 			}

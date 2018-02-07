@@ -38,6 +38,15 @@
 namespace sqlite {
 	template<class T, int Type, class = void>
 	struct has_sqlite_type : std::false_type {};
+	
+	template<class T>
+	using is_sqlite_value = std::integral_constant<bool, false
+		|| has_sqlite_type<T, SQLITE_NULL>::value
+		|| has_sqlite_type<T, SQLITE_INTEGER>::value
+		|| has_sqlite_type<T, SQLITE_FLOAT>::value
+		|| has_sqlite_type<T, SQLITE_TEXT>::value
+		|| has_sqlite_type<T, SQLITE_BLOB>::value
+	>;
 
 	template<class T, int Type>
 	struct has_sqlite_type<T&, Type> : has_sqlite_type<T, Type> {};
