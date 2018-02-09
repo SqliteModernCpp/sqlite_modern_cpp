@@ -135,7 +135,7 @@ namespace sqlite {
 			value_type(database_binder *_binder): _binder(_binder) {};
 			template<class T>
 			typename std::enable_if<is_sqlite_value<T>::value, value_type &>::type operator >>(T &result) {
-				get_col_from_db(_binder->_stmt.get(), next_index++, result);
+				result = get_col_from_db(_binder->_stmt.get(), next_index++, result_type<T>());
 				return *this;
 			}
 			template<class ...Types>
@@ -558,16 +558,20 @@ namespace sqlite {
 				sqlite3_value**  vals,
 				Values&&...      values
 		) {
-			typename std::remove_cv<
+			using arg_type = typename std::remove_cv<
 					typename std::remove_reference<
 							typename utility::function_traits<
 									typename Functions::first_type
 							>::template argument<sizeof...(Values)>
 					>::type
-			>::type value{};
-			get_val_from_db(vals[sizeof...(Values) - 1], value);
+			>::type;
 
-			step<Count, Functions>(db, count, vals, std::forward<Values>(values)..., std::move(value));
+			step<Count, Functions>(
+					db,
+					count,
+					vals,
+					std::forward<Values>(values)...,
+					get_val_from_db(vals[sizeof...(Values) - 1], result_type<arg_type>()));
 		}
 
 		template<
@@ -618,14 +622,18 @@ namespace sqlite {
 				sqlite3_value**  vals,
 				Values&&...      values
 		) {
-			typename std::remove_cv<
+			using arg_type = typename std::remove_cv<
 					typename std::remove_reference<
 							typename utility::function_traits<Function>::template argument<sizeof...(Values)>
 					>::type
-			>::type value{};
-			get_val_from_db(vals[sizeof...(Values)], value);
+			>::type;
 
-			scalar<Count, Function>(db, count, vals, std::forward<Values>(values)..., std::move(value));
+			scalar<Count, Function>(
+					db,
+					count,
+					vals,
+					std::forward<Values>(values)...,
+					get_val_from_db(vals[sizeof...(Values)], result_type<arg_type>()));
 		}
 
 		template<
