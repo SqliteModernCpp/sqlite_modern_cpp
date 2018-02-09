@@ -353,8 +353,12 @@ namespace sqlite {
 					return variant_select_type<SQLITE_TEXT, Options...>(std::forward<Callback>(callback));
 				case SQLITE_BLOB:
 					return variant_select_type<SQLITE_BLOB, Options...>(std::forward<Callback>(callback));
-				default:;
 			}
+#ifdef _MSC_VER
+			__assume(false);
+#else
+			__builtin_unreachable();
+#endif
 		}
 	}
 	template <typename ...Args> inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const std::variant<Args...>& val) {
