@@ -139,7 +139,11 @@ namespace sqlite {
 				return *this;
 			}
 			template<class ...Types>
-			value_type &operator >>(std::tuple<Types...>& values);
+			value_type &operator >>(std::tuple<Types...>& values) {
+				values = handle_tuple<std::tuple<typename std::decay<Types>::type...>>(std::index_sequence_for<Types...>());
+				next_index += sizeof...(Types);
+				return *this;
+			}
 			template<class ...Types>
 			value_type &operator >>(std::tuple<Types...>&& values) {
 				return *this >> values;
@@ -154,6 +158,14 @@ namespace sqlite {
 				return sqlite3_column_count(_binder->_stmt.get()) >= next_index;
 			}
 		private:
+			template<class Tuple, std::size_t ...Index>
+			Tuple handle_tuple(std::index_sequence<Index...>) {
+				return Tuple(
+						get_col_from_db(
+							_binder->_stmt.get(),
+							next_index + Index,
+							result_type<typename std::tuple_element<Index, Tuple>::type>())...);
+			}
 			database_binder *_binder;
 			int next_index = 0;
 		};
@@ -197,27 +209,6 @@ namespace sqlite {
 		database_binder *_binder = nullptr;
 		mutable value_type value{_binder}; // mutable, because `changing` the value is just reading it
 	};
-
-	namespace detail {
-		template<typename Tuple, int Element = 0, bool Last = (std::tuple_size<Tuple>::value == Element)> struct tuple_iterate {
-			static void iterate(Tuple& t, row_iterator::value_type& row) {
-				row >> std::get<Element>(t);
-				tuple_iterate<Tuple, Element + 1>::iterate(t, row);
-			}
-		};
-
-		template<typename Tuple, int Element> struct tuple_iterate<Tuple, Element, true> {
-			static void iterate(Tuple&, row_iterator::value_type&) {}
-		};
-	}
-
-	template<class ...Types>
-	row_iterator::value_type &row_iterator::value_type::operator >>(std::tuple<Types...>& values) {
-		assert(!next_index);
-		detail::tuple_iterate<std::tuple<Types...>>::iterate(values, *this);
-		next_index = sizeof...(Types) + 1;
-		return *this;
-	}
 
 	inline row_iterator database_binder::begin() {
 		return row_iterator(*this);
