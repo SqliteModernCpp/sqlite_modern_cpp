@@ -1,4 +1,4 @@
-AC_INIT(sqlite_modern_cpp, version-0.7)
+AC_INIT(sqlite_modern_cpp, 3.2)
 AC_LANG(C++)
 AC_PROG_CXX
 
