@@ -36,6 +36,8 @@
 #include "errors.h"
 
 namespace sqlite {
+	using blob_t = std::pair<void const*, int>;
+
 	template<class T, int Type, class = void>
 	struct has_sqlite_type : std::false_type {};
 	
@@ -247,6 +249,31 @@ namespace sqlite {
 		int bytes = sqlite3_value_bytes(value);
 		T const* buf = reinterpret_cast<T const *>(sqlite3_value_blob(value));
 		return std::vector<T, A>(buf, buf + bytes/sizeof(T));
+	}
+
+	// blob_t
+	template<>
+	struct has_sqlite_type<blob_t, SQLITE_BLOB, void> : std::true_type {};
+
+	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const blob_t& blob) {
+		return sqlite3_bind_blob(stmt, inx, blob.first, blob.second, SQLITE_TRANSIENT);
+	}
+	inline void store_result_in_db(sqlite3_context* db, const blob_t& blob) {
+		sqlite3_result_blob(db, blob.first, blob.second, SQLITE_TRANSIENT);
+	}
+	inline blob_t get_col_from_db(sqlite3_stmt* stmt, int inx, result_type<blob_t>) {
+		if(sqlite3_column_type(stmt, inx) == SQLITE_NULL) {
+			return blob_t(nullptr, 0);
+		}
+		int bytes = sqlite3_column_bytes(stmt, inx);
+		return blob_t(sqlite3_column_blob(stmt, inx), bytes);
+	}
+	inline blob_t get_val_from_db(sqlite3_value *value, result_type<blob_t>) {
+		if(sqlite3_value_type(value) == SQLITE_NULL) {
+			return blob_t(nullptr, 0);
+		}
+		int bytes = sqlite3_value_bytes(value);
+		return blob_t(sqlite3_value_blob(value), bytes);
 	}
 
 	/* for unique_ptr<T> support */
