@@ -35,7 +35,7 @@ int main() {
       cout << "OK all three values are nullptr" << endl;
     };
 
-  } catch(sqlite_exception e) {
+  } catch(const sqlite_exception& e) {
     cout << "Sqlite error " << e.what() << endl;
     exit(EXIT_FAILURE);
   } catch(...) {
