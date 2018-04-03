@@ -83,7 +83,7 @@ int main() {
       db << "select count(*) from user" >> str_count;
       cout << "scount : " << str_count << endl;
    }
-   catch (exception& e) {
+   catch (const exception& e) {
       cout << e.what() << endl;
    }
 }
@@ -286,7 +286,7 @@ int main() {
 
       // Even more queries ..
    }
-   catch (exception& e) { cout << e.what() << endl; }
+   catch (const exception& e) { cout << e.what() << endl; }
 }
 ```
 
@@ -388,14 +388,14 @@ try {
 }
 /* if you are trying to catch all sqlite related exceptions
  * make sure to catch them by reference */
-catch (sqlite_exception& e) {
+catch (const sqlite_exception& e) {
    cerr  << e.get_code() << ": " << e.what() << " during "
          << e.get_sql() << endl;
 }
 /* you can catch specific exceptions as well,
-   catch(sqlite::errors::constraint e) {  } */
+   catch(const sqlite::errors::constraint &e) {  } */
 /* and even more specific exceptions
-   catch(sqlite::errors::constraint_primarykey e) {  } */
+   catch(const sqlite::errors::constraint_primarykey &e) {  } */
 ```
 
 You can also register a error logging function with `sqlite::error_log`.
@@ -419,7 +419,7 @@ try {
    // inserting again to produce error
    db << "insert into person (id, name) values (?,?)" << 1 << "jack";
 }
-catch (sqlite_exception& e) {}
+catch (const sqlite_exception& e) {}
 ```
 
 Custom SQL functions

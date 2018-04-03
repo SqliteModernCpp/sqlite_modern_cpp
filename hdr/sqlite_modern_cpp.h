@@ -526,10 +526,10 @@ namespace sqlite {
 				if(!ctxt->constructed) new(ctxt) AggregateCtxt<ContextType>();
 				step<Count, Functions>(db, count, vals, ctxt->obj);
 				return;
-			} catch(sqlite_exception &e) {
+			} catch(const sqlite_exception &e) {
 				sqlite3_result_error_code(db, e.get_code());
 				sqlite3_result_error(db, e.what(), -1);
-			} catch(std::exception &e) {
+			} catch(const std::exception &e) {
 				sqlite3_result_error(db, e.what(), -1);
 			} catch(...) {
 				sqlite3_result_error(db, "Unknown error", -1);
@@ -590,10 +590,10 @@ namespace sqlite {
 				if(!ctxt->constructed) new(ctxt) AggregateCtxt<ContextType>();
 				store_result_in_db(db,
 						static_cast<Functions*>(sqlite3_user_data(db))->second(ctxt->obj));
-			} catch(sqlite_exception &e) {
+			} catch(const sqlite_exception &e) {
 				sqlite3_result_error_code(db, e.get_code());
 				sqlite3_result_error(db, e.what(), -1);
-			} catch(std::exception &e) {
+			} catch(const std::exception &e) {
 				sqlite3_result_error(db, e.what(), -1);
 			} catch(...) {
 				sqlite3_result_error(db, "Unknown error", -1);
@@ -641,10 +641,10 @@ namespace sqlite {
 			try {
 				store_result_in_db(db,
 						(*static_cast<Function*>(sqlite3_user_data(db)))(std::forward<Values>(values)...));
-			} catch(sqlite_exception &e) {
+			} catch(const sqlite_exception &e) {
 				sqlite3_result_error_code(db, e.get_code());
 				sqlite3_result_error(db, e.what(), -1);
-			} catch(std::exception &e) {
+			} catch(const std::exception &e) {
 				sqlite3_result_error(db, e.what(), -1);
 			} catch(...) {
 				sqlite3_result_error(db, "Unknown error", -1);

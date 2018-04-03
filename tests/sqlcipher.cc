@@ -37,7 +37,7 @@ TEST_CASE("sqlcipher works", "[sqlcipher]") {
         config.key = "DebugKey2";
         sqlcipher_database db(file.fname, config);
         db << "INSERT INTO foo VALUES (?, ?)" << 3 << "fail";
-    } catch(errors::notadb) {
+    } catch(const errors::notadb&) {
         failed = true;
         // Expected, wrong key
     }
