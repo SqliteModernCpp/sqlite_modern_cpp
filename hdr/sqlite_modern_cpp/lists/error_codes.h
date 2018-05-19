@@ -3,6 +3,10 @@
 #define SQLITE_IOERR_AUTH (SQLITE_IOERR | (28<<8))
 #define SQLITE_AUTH_USER (SQLITE_AUTH | (1<<8))
 #endif
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4065)
+#endif
 SQLITE_MODERN_CPP_ERROR_CODE(ERROR,error,)
 SQLITE_MODERN_CPP_ERROR_CODE(INTERNAL,internal,)
 SQLITE_MODERN_CPP_ERROR_CODE(PERM,perm,)
@@ -91,3 +95,6 @@ SQLITE_MODERN_CPP_ERROR_CODE(NOTICE,notice,
 SQLITE_MODERN_CPP_ERROR_CODE(WARNING,warning,
   SQLITE_MODERN_CPP_ERROR_CODE_EXTENDED(WARNING,AUTOINDEX,warning,autoindex)
 )
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
