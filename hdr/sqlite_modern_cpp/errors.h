@@ -45,7 +45,8 @@ namespace sqlite {
 #define SQLITE_MODERN_CPP_ERROR_CODE(NAME,name,derived)     \
 				case SQLITE_ ## NAME: switch(error_code) {          \
 					derived                                           \
-					default: throw name(error_code, sql); \
+					case SQLITE_ ## NAME:                             \
+					default: throw name(error_code, sql);             \
 				}
 #define SQLITE_MODERN_CPP_ERROR_CODE_EXTENDED(BASE,SUB,base,sub) \
 					case SQLITE_ ## BASE ## _ ## SUB: throw base ## _ ## sub(error_code, sql);
