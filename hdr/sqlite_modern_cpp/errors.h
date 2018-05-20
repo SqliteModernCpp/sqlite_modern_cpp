@@ -41,16 +41,20 @@ namespace sqlite {
 		class invalid_utf16: public sqlite_exception { using sqlite_exception::sqlite_exception; };
 
 		static void throw_sqlite_error(const int& error_code, const std::string &sql = "") {
-			switch(error_code & 0xFF) {
-#define SQLITE_MODERN_CPP_ERROR_CODE(NAME,name,derived)     \
-				case SQLITE_ ## NAME: switch(error_code) {          \
-					derived                                           \
-					default: throw name(error_code, sql); \
-				}
+			switch(error_code) {
+#define SQLITE_MODERN_CPP_ERROR_CODE(NAME,name,derived)   \
+				derived
 #define SQLITE_MODERN_CPP_ERROR_CODE_EXTENDED(BASE,SUB,base,sub) \
-					case SQLITE_ ## BASE ## _ ## SUB: throw base ## _ ## sub(error_code, sql);
+				case SQLITE_ ## BASE ## _ ## SUB: throw base ## _ ## sub(error_code, sql);
 #include "lists/error_codes.h"
 #undef SQLITE_MODERN_CPP_ERROR_CODE_EXTENDED
+#undef SQLITE_MODERN_CPP_ERROR_CODE
+				default:;
+			}
+			switch(error_code & 0xFF) {
+#define SQLITE_MODERN_CPP_ERROR_CODE(NAME,name,derived)     \
+				case SQLITE_ ## NAME: throw name(error_code, sql);
+#include "lists/error_codes.h"
 #undef SQLITE_MODERN_CPP_ERROR_CODE
 				default: throw sqlite_exception(error_code, sql);
 			}
