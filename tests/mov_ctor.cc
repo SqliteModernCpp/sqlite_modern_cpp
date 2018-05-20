@@ -24,7 +24,7 @@ TEST_CASE("database lifecycle", "move_ctor") {
 
   bool failed = false;
   try { dbFront dbf; }
-  catch(sqlite_exception& e) { failed = true; }
+  catch(const sqlite_exception& e) { failed = true; }
   catch(...) { failed = true; }
 
   REQUIRE(failed == false);

@@ -43,7 +43,7 @@ TEST_CASE("error_log works", "[log]") {
         db << "INSERT INTO person (id,name) VALUES (?,?)" << 1 << "jack";
         // triger primarykey constraint of 'id'
         db << "INSERT INTO person (id,name) VALUES (?,?)" << 1 << "bob";
-      } catch (errors::constraint& e) { }
+      } catch (const errors::constraint& e) { }
       REQUIRE(track.primarykey_called == true);
       REQUIRE(track.constraint_called == false);
       track.primarykey_called = false;
@@ -54,7 +54,7 @@ TEST_CASE("error_log works", "[log]") {
         db << "INSERT INTO person (id,name) VALUES (?,?)" << 1 << "jack";
         // trigger unique constraint of 'name'
         db << "INSERT INTO person (id,name) VALUES (?,?)" << 2 << "jack";
-      } catch (errors::constraint& e) { }
+      } catch (const errors::constraint& e) { }
 
       REQUIRE(track.primarykey_called == false);
       REQUIRE(track.constraint_called == true);
