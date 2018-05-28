@@ -21,7 +21,7 @@ struct A {
 };
 
 TEST_CASE("Nested prepered statements wont execute", "[nested_prepared_statements]") {
-#ifdef __cpp_lib_uncaught_exceptions
+#ifdef MODERN_SQLITE_UNCAUGHT_EXCEPTIONS_SUPPORT
 	try {
 		A a;
 		throw 1;
