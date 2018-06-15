@@ -6,6 +6,7 @@
 #include <vector>
 #ifdef __has_include
 #if __cplusplus >= 201703 && __has_include(<string_view>)
+#define MODERN_SQLITE_STRINGVIEW_SUPPORT
 #include <string_view>
 #define STR_REF std::string_view
 #define U16STR_REF std::u16string_view
@@ -164,8 +165,6 @@ namespace sqlite {
 
 	// STR_REF
 	template<>
-	struct has_sqlite_type<STR_REF, SQLITE3_TEXT, void> : std::true_type {};
-	template<>
 	struct has_sqlite_type<std::string, SQLITE3_TEXT, void> : std::true_type {};
 	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const STR_REF& val) {
 		return sqlite3_bind_text(stmt, inx, val.data(), -1, SQLITE_TRANSIENT);
@@ -187,8 +186,6 @@ namespace sqlite {
 		sqlite3_result_text(db, val.data(), -1, SQLITE_TRANSIENT);
 	}
 	// U16STR_REF
-	template<>
-	struct has_sqlite_type<U16STR_REF, SQLITE3_TEXT, void> : std::true_type {};
 	template<>
 	struct has_sqlite_type<std::u16string, SQLITE3_TEXT, void> : std::true_type {};
 	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const U16STR_REF& val) {
