@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 #ifdef __cplusplus >= 201703 && __has_include(<string_view>)
+#include <string_view>
 #define STR_REF std::string_view
 #define U16STR_REF std::u16string_view
 #else
