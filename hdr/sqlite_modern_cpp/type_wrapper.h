@@ -4,10 +4,15 @@
 #include <string>
 #include <memory>
 #include <vector>
-#ifdef __cplusplus >= 201703 && __has_include(<string_view>)
+#ifdef __has_include
+#if __cplusplus >= 201703 && __has_include(<string_view>)
 #include <string_view>
 #define STR_REF std::string_view
 #define U16STR_REF std::u16string_view
+#else
+#define STR_REF std::string
+#define U16STR_REF std::u16string
+#endif
 #else
 #define STR_REF std::string
 #define U16STR_REF std::u16string
