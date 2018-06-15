@@ -42,7 +42,7 @@ namespace sqlite {
 
 		void execute();
 
-		std::string_view sql() {
+		STR_REF sql() {
 #if SQLITE_VERSION_NUMBER >= 3014000
 			auto sqlite_deleter = [](void *ptr) {sqlite3_free(ptr);};
 			std::unique_ptr<char, decltype(sqlite_deleter)> str(sqlite3_expanded_sql(_stmt.get()), sqlite_deleter);
@@ -52,7 +52,7 @@ namespace sqlite {
 #endif
 		}
 
-		std::string_view original_sql() {
+		STR_REF original_sql() {
 			return sqlite3_sql(_stmt.get());
 		}
 
@@ -85,7 +85,7 @@ namespace sqlite {
 			return ++_inx;
 		}
 
-		sqlite3_stmt* _prepare(const std::u16string_view& sql) {
+		sqlite3_stmt* _prepare(const U16STR_REF& sql) {
 			//return _prepare(utility::utf16_to_utf8(sql));
 			int hresult;
 			sqlite3_stmt* tmp = nullptr;
@@ -97,7 +97,7 @@ namespace sqlite {
 			return tmp;
 		}
 
-		sqlite3_stmt* _prepare(const std::string_view& sql) {
+		sqlite3_stmt* _prepare(const STR_REF& sql) {
 			int hresult;
 			sqlite3_stmt* tmp = nullptr;
 			const char *remaining;
@@ -113,13 +113,13 @@ namespace sqlite {
 
 	public:
 
-		database_binder(std::shared_ptr<sqlite3> db, std::u16string_view const & sql):
+		database_binder(std::shared_ptr<sqlite3> db, U16STR_REF const & sql):
 			_db(db),
 			_stmt(_prepare(sql), sqlite3_finalize),
 			_inx(0) {
 		}
 
-		database_binder(std::shared_ptr<sqlite3> db, std::string_view const & sql):
+		database_binder(std::shared_ptr<sqlite3> db, STR_REF const & sql):
 			_db(db),
 			_stmt(_prepare(sql), sqlite3_finalize),
 			_inx(0) {
@@ -370,7 +370,7 @@ namespace sqlite {
 		std::shared_ptr<sqlite3> _db;
 
 	public:
-		database(const std::string_view &db_name, const sqlite_config &config = {}): _db(nullptr) {
+		database(const STR_REF &db_name, const sqlite_config &config = {}): _db(nullptr) {
 			sqlite3* tmp = nullptr;
 			auto ret = sqlite3_open_v2(db_name.data(), &tmp, static_cast<int>(config.flags), config.zVfs);
 			_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); }); // this will close the connection eventually when no longer needed.
@@ -380,7 +380,7 @@ namespace sqlite {
 				*this << R"(PRAGMA encoding = "UTF-16";)";
 		}
 
-		database(const std::u16string_view &db_name, const sqlite_config &config = {}): _db(nullptr) {
+		database(const U16STR_REF &db_name, const sqlite_config &config = {}): _db(nullptr) {
 			auto db_name_utf8 = utility::utf16_to_utf8(db_name.data());
 			sqlite3* tmp = nullptr;
 			auto ret = sqlite3_open_v2(db_name_utf8.data(), &tmp, static_cast<int>(config.flags), config.zVfs);
@@ -394,20 +394,20 @@ namespace sqlite {
 		database(std::shared_ptr<sqlite3> db):
 			_db(db) {}
 
-		database_binder operator<<(const std::string_view& sql) {
+		database_binder operator<<(const STR_REF& sql) {
 			return database_binder(_db, sql);
 		}
 
 		database_binder operator<<(const char* sql) {
-			return *this << std::string_view(sql);
+			return *this << STR_REF(sql);
 		}
 
-		database_binder operator<<(const std::u16string_view& sql) {
+		database_binder operator<<(const U16STR_REF& sql) {
 			return database_binder(_db, sql);
 		}
 
 		database_binder operator<<(const char16_t* sql) {
-			return *this << std::u16string_view(sql);
+			return *this << U16STR_REF(sql);
 		}
 
 		connection_type connection() const { return _db; }
@@ -421,7 +421,7 @@ namespace sqlite {
 		}
 
 		template <typename Function>
-		void define(const std::string_view &name, Function&& func) {
+		void define(const STR_REF &name, Function&& func) {
 			typedef utility::function_traits<Function> traits;
 
 			auto funcPtr = new auto(std::forward<Function>(func));
@@ -435,7 +435,7 @@ namespace sqlite {
 		}
 
 		template <typename StepFunction, typename FinalFunction>
-		void define(const std::string_view &name, StepFunction&& step, FinalFunction&& final) {
+		void define(const STR_REF &name, StepFunction&& step, FinalFunction&& final) {
 			typedef utility::function_traits<StepFunction> traits;
 			using ContextType = typename std::remove_reference<typename traits::template argument<0>>::type;
 
@@ -660,3 +660,5 @@ namespace sqlite {
 		}
 	}
 }
+#undef STR_REF
+#undef U16STR_REF
