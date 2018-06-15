@@ -42,7 +42,7 @@ namespace sqlite {
 
 		void execute();
 
-		std::string sql() {
+		std::string_view sql() {
 #if SQLITE_VERSION_NUMBER >= 3014000
 			auto sqlite_deleter = [](void *ptr) {sqlite3_free(ptr);};
 			std::unique_ptr<char, decltype(sqlite_deleter)> str(sqlite3_expanded_sql(_stmt.get()), sqlite_deleter);
@@ -52,7 +52,7 @@ namespace sqlite {
 #endif
 		}
 
-		std::string original_sql() {
+		std::string_view original_sql() {
 			return sqlite3_sql(_stmt.get());
 		}
 
@@ -85,11 +85,19 @@ namespace sqlite {
 			return ++_inx;
 		}
 
-		sqlite3_stmt* _prepare(const std::u16string& sql) {
-			return _prepare(utility::utf16_to_utf8(sql));
+		sqlite3_stmt* _prepare(const std::u16string_view& sql) {
+			//return _prepare(utility::utf16_to_utf8(sql));
+			int hresult;
+			sqlite3_stmt* tmp = nullptr;
+			const void *remaining;
+			hresult = sqlite3_prepare16_v2(_db.get(), sql.data(), -1, &tmp, &remaining);
+			if (hresult != SQLITE_OK) errors::throw_sqlite_error(hresult, utility::utf16_to_utf8(sql.data()));
+			if (!std::all_of(static_cast<const char16_t*>(remaining), sql.data() + sql.size(), [](char16_t ch) {return std::isspace(ch); }))
+				throw errors::more_statements("Multiple semicolon separated statements are unsupported", utility::utf16_to_utf8(sql.data()));
+			return tmp;
 		}
 
-		sqlite3_stmt* _prepare(const std::string& sql) {
+		sqlite3_stmt* _prepare(const std::string_view& sql) {
 			int hresult;
 			sqlite3_stmt* tmp = nullptr;
 			const char *remaining;
@@ -105,13 +113,13 @@ namespace sqlite {
 
 	public:
 
-		database_binder(std::shared_ptr<sqlite3> db, std::u16string const & sql):
+		database_binder(std::shared_ptr<sqlite3> db, std::u16string_view const & sql):
 			_db(db),
 			_stmt(_prepare(sql), sqlite3_finalize),
 			_inx(0) {
 		}
 
-		database_binder(std::shared_ptr<sqlite3> db, std::string const & sql):
+		database_binder(std::shared_ptr<sqlite3> db, std::string_view const & sql):
 			_db(db),
 			_stmt(_prepare(sql), sqlite3_finalize),
 			_inx(0) {
@@ -362,7 +370,7 @@ namespace sqlite {
 		std::shared_ptr<sqlite3> _db;
 
 	public:
-		database(const std::string &db_name, const sqlite_config &config = {}): _db(nullptr) {
+		database(const std::string_view &db_name, const sqlite_config &config = {}): _db(nullptr) {
 			sqlite3* tmp = nullptr;
 			auto ret = sqlite3_open_v2(db_name.data(), &tmp, static_cast<int>(config.flags), config.zVfs);
 			_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); }); // this will close the connection eventually when no longer needed.
@@ -372,8 +380,8 @@ namespace sqlite {
 				*this << R"(PRAGMA encoding = "UTF-16";)";
 		}
 
-		database(const std::u16string &db_name, const sqlite_config &config = {}): _db(nullptr) {
-			auto db_name_utf8 = utility::utf16_to_utf8(db_name);
+		database(const std::u16string_view &db_name, const sqlite_config &config = {}): _db(nullptr) {
+			auto db_name_utf8 = utility::utf16_to_utf8(db_name.data());
 			sqlite3* tmp = nullptr;
 			auto ret = sqlite3_open_v2(db_name_utf8.data(), &tmp, static_cast<int>(config.flags), config.zVfs);
 			_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); }); // this will close the connection eventually when no longer needed.
@@ -386,20 +394,20 @@ namespace sqlite {
 		database(std::shared_ptr<sqlite3> db):
 			_db(db) {}
 
-		database_binder operator<<(const std::string& sql) {
+		database_binder operator<<(const std::string_view& sql) {
 			return database_binder(_db, sql);
 		}
 
 		database_binder operator<<(const char* sql) {
-			return *this << std::string(sql);
+			return *this << std::string_view(sql);
 		}
 
-		database_binder operator<<(const std::u16string& sql) {
+		database_binder operator<<(const std::u16string_view& sql) {
 			return database_binder(_db, sql);
 		}
 
 		database_binder operator<<(const char16_t* sql) {
-			return *this << std::u16string(sql);
+			return *this << std::u16string_view(sql);
 		}
 
 		connection_type connection() const { return _db; }
@@ -413,12 +421,12 @@ namespace sqlite {
 		}
 
 		template <typename Function>
-		void define(const std::string &name, Function&& func) {
+		void define(const std::string_view &name, Function&& func) {
 			typedef utility::function_traits<Function> traits;
 
 			auto funcPtr = new auto(std::forward<Function>(func));
 			if(int result = sqlite3_create_function_v2(
-					_db.get(), name.c_str(), traits::arity, SQLITE_UTF8, funcPtr,
+					_db.get(), name.data(), traits::arity, SQLITE_UTF8, funcPtr,
 					sql_function_binder::scalar<traits::arity, typename std::remove_reference<Function>::type>,
 					nullptr, nullptr, [](void* ptr){
 				delete static_cast<decltype(funcPtr)>(ptr);
@@ -427,13 +435,13 @@ namespace sqlite {
 		}
 
 		template <typename StepFunction, typename FinalFunction>
-		void define(const std::string &name, StepFunction&& step, FinalFunction&& final) {
+		void define(const std::string_view &name, StepFunction&& step, FinalFunction&& final) {
 			typedef utility::function_traits<StepFunction> traits;
 			using ContextType = typename std::remove_reference<typename traits::template argument<0>>::type;
 
 			auto funcPtr = new auto(std::make_pair(std::forward<StepFunction>(step), std::forward<FinalFunction>(final)));
 			if(int result = sqlite3_create_function_v2(
-					_db.get(), name.c_str(), traits::arity - 1, SQLITE_UTF8, funcPtr, nullptr,
+					_db.get(), name.data(), traits::arity - 1, SQLITE_UTF8, funcPtr, nullptr,
 					sql_function_binder::step<ContextType, traits::arity, typename std::remove_reference<decltype(*funcPtr)>::type>,
 					sql_function_binder::final<ContextType, typename std::remove_reference<decltype(*funcPtr)>::type>,
 					[](void* ptr){
