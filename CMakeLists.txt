@@ -43,6 +43,7 @@ else()
 endif()
 
 catch_discover_tests(tests)
+target_compile_options(tests PUBLIC $<$<CXX_COMPILER_ID:MSVC>:/Zc:__cplusplus> )
 
 # Place the file in the source directory, permitting us to place a single configuration file for YCM there.
 # YCM is the code-completion engine for (neo)vim https://github.com/Valloric/YouCompleteMe
