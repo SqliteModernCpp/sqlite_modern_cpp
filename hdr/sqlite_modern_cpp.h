@@ -407,7 +407,7 @@ namespace sqlite {
 		}
 
 		template <typename Function>
-		void define(const STR_REF &name, Function&& func) {
+		void define(const std::string &name, Function&& func) {
 			typedef utility::function_traits<Function> traits;
 
 			auto funcPtr = new auto(std::forward<Function>(func));
@@ -421,7 +421,7 @@ namespace sqlite {
 		}
 
 		template <typename StepFunction, typename FinalFunction>
-		void define(const STR_REF &name, StepFunction&& step, FinalFunction&& final) {
+		void define(const std::string &name, StepFunction&& step, FinalFunction&& final) {
 			typedef utility::function_traits<StepFunction> traits;
 			using ContextType = typename std::remove_reference<typename traits::template argument<0>>::type;
 
