@@ -9,11 +9,11 @@ namespace sqlite {
 
 	class sqlite_exception: public std::runtime_error {
 	public:
-		sqlite_exception(const char* msg, STR_REF sql, int code = -1): runtime_error(msg), code(code), sql(sql) {}
-		sqlite_exception(int code, STR_REF sql): runtime_error(sqlite3_errstr(code)), code(code), sql(sql) {}
+		sqlite_exception(const char* msg, STR_REF sql, int code = -1): runtime_error(msg), code(code), sql(std::move(sql)) {}
+		sqlite_exception(int code, STR_REF sql): runtime_error(sqlite3_errstr(code)), code(code), sql(std::move(sql)) {}
 		int get_code() const {return code & 0xFF;}
 		int get_extended_code() const {return code;}
-		STR_REF get_sql() const {return sql;}
+		std::string get_sql() const {return sql;}
 	private:
 		int code;
 		std::string sql;

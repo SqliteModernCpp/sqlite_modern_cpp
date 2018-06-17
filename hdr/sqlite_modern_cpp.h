@@ -42,7 +42,7 @@ namespace sqlite {
 
 		void execute();
 
-		STR_REF sql() {
+		std::string sql() {
 #if SQLITE_VERSION_NUMBER >= 3014000
 			auto sqlite_deleter = [](void *ptr) {sqlite3_free(ptr);};
 			std::unique_ptr<char, decltype(sqlite_deleter)> str(sqlite3_expanded_sql(_stmt.get()), sqlite_deleter);
@@ -52,7 +52,7 @@ namespace sqlite {
 #endif
 		}
 
-		STR_REF original_sql() {
+		std::string original_sql() {
 			return sqlite3_sql(_stmt.get());
 		}
 
