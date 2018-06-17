@@ -362,7 +362,7 @@ namespace sqlite {
 		std::shared_ptr<sqlite3> _db;
 
 	public:
-		database(const STR_REF &db_name, const sqlite_config &config = {}): _db(nullptr) {
+		database(const std::string &db_name, const sqlite_config &config = {}): _db(nullptr) {
 			sqlite3* tmp = nullptr;
 			auto ret = sqlite3_open_v2(db_name.data(), &tmp, static_cast<int>(config.flags), config.zVfs);
 			_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); }); // this will close the connection eventually when no longer needed.
@@ -372,14 +372,8 @@ namespace sqlite {
 				*this << R"(PRAGMA encoding = "UTF-16";)";
 		}
 
-		database(const U16STR_REF &db_name, const sqlite_config &config = {}): _db(nullptr) {
-			auto db_name_utf8 = utility::utf16_to_utf8(db_name.data());
-			sqlite3* tmp = nullptr;
-			auto ret = sqlite3_open_v2(db_name_utf8.data(), &tmp, static_cast<int>(config.flags), config.zVfs);
-			_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); }); // this will close the connection eventually when no longer needed.
-			if(ret != SQLITE_OK) errors::throw_sqlite_error(_db ? sqlite3_extended_errcode(_db.get()) : ret);
-			sqlite3_extended_result_codes(_db.get(), true);
-			if(config.encoding != Encoding::UTF8)
+		database(const std::u16string &db_name, const sqlite_config &config = {}): database(utility::utf16_to_utf8(db_name.data()), config) {
+			if (config.encoding == Encoding::ANY)
 				*this << R"(PRAGMA encoding = "UTF-16";)";
 		}
 
