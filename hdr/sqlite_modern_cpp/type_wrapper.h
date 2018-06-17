@@ -37,11 +37,11 @@
 #endif
 #ifdef MODERN_SQLITE_STRINGVIEW_SUPPORT
 #include <string_view>
-#define STR_REF std::string_view
-#define U16STR_REF std::u16string_view
+typedef std::string_view STR_REF;
+typedef std::u16string_view U16STR_REF;
 #else
-#define STR_REF std::string
-#define U16STR_REF std::u16string
+typedef std::string STR_REF;
+typedef std::u16string U16STR_REF;
 #endif
 #include <sqlite3.h>
 #include "errors.h"
