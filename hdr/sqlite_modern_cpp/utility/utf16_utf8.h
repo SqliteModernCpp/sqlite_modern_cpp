@@ -8,7 +8,7 @@
 
 namespace sqlite {
 	namespace utility {
-		inline std::string utf16_to_utf8(const std::u16string &input) {
+		inline std::string utf16_to_utf8(const U16STR_REF &input) {
 			struct : std::codecvt<char16_t, char, std::mbstate_t> {
 			} codecvt;
 			std::mbstate_t state{};

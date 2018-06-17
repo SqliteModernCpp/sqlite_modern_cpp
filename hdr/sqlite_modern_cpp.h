@@ -86,22 +86,14 @@ namespace sqlite {
 		}
 
 		sqlite3_stmt* _prepare(const U16STR_REF& sql) {
-			//return _prepare(utility::utf16_to_utf8(sql));
-			int hresult;
-			sqlite3_stmt* tmp = nullptr;
-			const void *remaining;
-			hresult = sqlite3_prepare16_v2(_db.get(), sql.data(), -1, &tmp, &remaining);
-			if (hresult != SQLITE_OK) errors::throw_sqlite_error(hresult, utility::utf16_to_utf8(sql.data()));
-			if (!std::all_of(static_cast<const char16_t*>(remaining), sql.data() + sql.size(), [](char16_t ch) {return std::isspace(ch); }))
-				throw errors::more_statements("Multiple semicolon separated statements are unsupported", utility::utf16_to_utf8(sql.data()));
-			return tmp;
+			return _prepare(utility::utf16_to_utf8(sql));
 		}
 
 		sqlite3_stmt* _prepare(const STR_REF& sql) {
 			int hresult;
 			sqlite3_stmt* tmp = nullptr;
 			const char *remaining;
-			hresult = sqlite3_prepare_v2(_db.get(), sql.data(), -1, &tmp, &remaining);
+			hresult = sqlite3_prepare_v2(_db.get(), sql.data(), sql.length(), &tmp, &remaining);
 			if(hresult != SQLITE_OK) errors::throw_sqlite_error(hresult, sql);
 			if(!std::all_of(remaining, sql.data() + sql.size(), [](char ch) {return std::isspace(ch);}))
 				throw errors::more_statements("Multiple semicolon separated statements are unsupported", sql);
