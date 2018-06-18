@@ -45,8 +45,8 @@ namespace sqlite
 #else
 namespace sqlite
 {
-	typedef const std::string& sqlite::str_ref;
-	typedef const std::u16string& sqlite::u16str_ref;
+	typedef const std::string& str_ref;
+	typedef const std::u16string& u16str_ref;
 }
 #endif
 #include <sqlite3.h>
