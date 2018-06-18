@@ -32,6 +32,7 @@ int main() {
       //      int ,long, long long, float, double
       //      string , u16string
       // sqlite3 only supports utf8 and utf16 strings, you should use std::string for utf8 and std::u16string for utf16.
+	  // If you're using c++17, it takes `string_view` and `u16string_view` as arguments
       // note that u"my text" is a utf16 string literal of type char16_t * .
       db << "insert into user (age,name,weight) values (?,?,?);"
          << 20
