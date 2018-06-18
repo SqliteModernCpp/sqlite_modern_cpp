@@ -200,7 +200,7 @@ namespace sqlite {
 
 	// Convert char* to string_view to trigger op<<(..., const str_ref )
 	template<std::size_t N> inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const char16_t(&STR)[N]) { 
-		return sqlite3_bind_text16(stmt, inx, &STR[0], N-1, SQLITE_TRANSIENT);
+		return sqlite3_bind_text16(stmt, inx, &STR[0], sizeof(char16_t) * (N-1), SQLITE_TRANSIENT);
 	}
 
 	inline std::u16string get_col_from_db(sqlite3_stmt* stmt, int inx, result_type<std::u16string>) {
