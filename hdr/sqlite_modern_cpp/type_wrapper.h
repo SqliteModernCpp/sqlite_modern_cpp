@@ -37,11 +37,17 @@
 #endif
 #ifdef MODERN_SQLITE_STRINGVIEW_SUPPORT
 #include <string_view>
-typedef const std::string_view STR_REF;
-typedef const std::u16string_view U16STR_REF;
+namespace sqlite
+{
+	typedef const std::string_view str_ref;
+	typedef const std::u16string_view u16str_ref;
+}
 #else
-typedef const std::string& STR_REF;
-typedef const std::u16string& U16STR_REF;
+namespace sqlite
+{
+	typedef const std::string& sqlite::str_ref;
+	typedef const std::u16string& sqlite::u16str_ref;
+}
 #endif
 #include <sqlite3.h>
 #include "errors.h"
@@ -161,14 +167,14 @@ namespace sqlite {
 		sqlite3_result_null(db);
 	}
 
-	// STR_REF
+	// str_ref
 	template<>
 	struct has_sqlite_type<std::string, SQLITE3_TEXT, void> : std::true_type {};
-	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, STR_REF val) {
+	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, str_ref val) {
 		return sqlite3_bind_text(stmt, inx, val.data(), val.length(), SQLITE_TRANSIENT);
 	}
 
-	// Convert char* to string_view to trigger op<<(..., const STR_REF )
+	// Convert char* to string_view to trigger op<<(..., const str_ref )
 	template<std::size_t N> inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const char(&STR)[N]) { 
 		return sqlite3_bind_text(stmt, inx, &STR[0], N-1, SQLITE_TRANSIENT); 
 	}
@@ -182,17 +188,17 @@ namespace sqlite {
 			std::string(reinterpret_cast<char const *>(sqlite3_value_text(value)), sqlite3_value_bytes(value));
 	}
 
-	inline void store_result_in_db(sqlite3_context* db, STR_REF val) {
+	inline void store_result_in_db(sqlite3_context* db, str_ref val) {
 		sqlite3_result_text(db, val.data(), val.length(), SQLITE_TRANSIENT);
 	}
-	// U16STR_REF
+	// u16str_ref
 	template<>
 	struct has_sqlite_type<std::u16string, SQLITE3_TEXT, void> : std::true_type {};
-	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, U16STR_REF val) {
+	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, u16str_ref val) {
 		return sqlite3_bind_text16(stmt, inx, val.data(), sizeof(char16_t) * val.length(), SQLITE_TRANSIENT);
 	}
 
-	// Convert char* to string_view to trigger op<<(..., const STR_REF )
+	// Convert char* to string_view to trigger op<<(..., const str_ref )
 	template<std::size_t N> inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const char16_t(&STR)[N]) { 
 		return sqlite3_bind_text16(stmt, inx, &STR[0], N-1, SQLITE_TRANSIENT);
 	}
@@ -206,7 +212,7 @@ namespace sqlite {
 			std::u16string(reinterpret_cast<char16_t const *>(sqlite3_value_text16(value)), sqlite3_value_bytes16(value));
 	}
 
-	inline void store_result_in_db(sqlite3_context* db, U16STR_REF val) {
+	inline void store_result_in_db(sqlite3_context* db, u16str_ref val) {
 		sqlite3_result_text16(db, val.data(), sizeof(char16_t) * val.length(), SQLITE_TRANSIENT);
 	}
 

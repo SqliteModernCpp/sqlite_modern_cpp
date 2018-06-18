@@ -85,11 +85,11 @@ namespace sqlite {
 			return ++_inx;
 		}
 
-		sqlite3_stmt* _prepare(U16STR_REF sql) {
+		sqlite3_stmt* _prepare(u16str_ref sql) {
 			return _prepare(utility::utf16_to_utf8(sql));
 		}
 
-		sqlite3_stmt* _prepare(STR_REF sql) {
+		sqlite3_stmt* _prepare(str_ref sql) {
 			int hresult;
 			sqlite3_stmt* tmp = nullptr;
 			const char *remaining;
@@ -105,13 +105,13 @@ namespace sqlite {
 
 	public:
 
-		database_binder(std::shared_ptr<sqlite3> db, U16STR_REF  sql):
+		database_binder(std::shared_ptr<sqlite3> db, u16str_ref  sql):
 			_db(db),
 			_stmt(_prepare(sql), sqlite3_finalize),
 			_inx(0) {
 		}
 
-		database_binder(std::shared_ptr<sqlite3> db, STR_REF sql):
+		database_binder(std::shared_ptr<sqlite3> db, str_ref sql):
 			_db(db),
 			_stmt(_prepare(sql), sqlite3_finalize),
 			_inx(0) {
@@ -372,7 +372,7 @@ namespace sqlite {
 				*this << R"(PRAGMA encoding = "UTF-16";)";
 		}
 
-		database(const std::u16string &db_name, const sqlite_config &config = {}): database(utility::utf16_to_utf8(db_name.data()), config) {
+		database(const std::u16string &db_name, const sqlite_config &config = {}): database(utility::utf16_to_utf8(db_name), config) {
 			if (config.encoding == Encoding::ANY)
 				*this << R"(PRAGMA encoding = "UTF-16";)";
 		}
@@ -380,11 +380,11 @@ namespace sqlite {
 		database(std::shared_ptr<sqlite3> db):
 			_db(db) {}
 
-		database_binder operator<<(STR_REF sql) {
+		database_binder operator<<(str_ref sql) {
 			return database_binder(_db, sql);
 		}
 
-		database_binder operator<<(U16STR_REF sql) {
+		database_binder operator<<(u16str_ref sql) {
 			return database_binder(_db, sql);
 		}
 
@@ -419,7 +419,7 @@ namespace sqlite {
 
 			auto funcPtr = new auto(std::make_pair(std::forward<StepFunction>(step), std::forward<FinalFunction>(final)));
 			if(int result = sqlite3_create_function_v2(
-					_db.get(), name.data(), traits::arity - 1, SQLITE_UTF8, funcPtr, nullptr,
+					_db.get(), name.c_str(), traits::arity - 1, SQLITE_UTF8, funcPtr, nullptr,
 					sql_function_binder::step<ContextType, traits::arity, typename std::remove_reference<decltype(*funcPtr)>::type>,
 					sql_function_binder::final<ContextType, typename std::remove_reference<decltype(*funcPtr)>::type>,
 					[](void* ptr){

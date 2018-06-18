@@ -9,8 +9,8 @@ namespace sqlite {
 
 	class sqlite_exception: public std::runtime_error {
 	public:
-		sqlite_exception(const char* msg, STR_REF sql, int code = -1): runtime_error(msg), code(code), sql(std::move(sql)) {}
-		sqlite_exception(int code, STR_REF sql): runtime_error(sqlite3_errstr(code)), code(code), sql(std::move(sql)) {}
+		sqlite_exception(const char* msg, str_ref sql, int code = -1): runtime_error(msg), code(code), sql(sql) {}
+		sqlite_exception(int code, str_ref sql): runtime_error(sqlite3_errstr(code)), code(code), sql(sql) {}
 		int get_code() const {return code & 0xFF;}
 		int get_extended_code() const {return code;}
 		std::string get_sql() const {return sql;}
@@ -40,7 +40,7 @@ namespace sqlite {
 		class more_statements: public sqlite_exception { using sqlite_exception::sqlite_exception; }; // Prepared statements can only contain one statement
 		class invalid_utf16: public sqlite_exception { using sqlite_exception::sqlite_exception; };
 
-		static void throw_sqlite_error(const int& error_code, const STR_REF &sql = "") {
+		static void throw_sqlite_error(const int& error_code, str_ref sql = "") {
 			switch(error_code & 0xFF) {
 #define SQLITE_MODERN_CPP_ERROR_CODE(NAME,name,derived)     \
 				case SQLITE_ ## NAME: switch(error_code) {          \
