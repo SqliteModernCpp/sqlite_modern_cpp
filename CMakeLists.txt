@@ -3,7 +3,7 @@ OPTION(ENABLE_SQLCIPHER_TESTS "enable sqlchipher test")
 
 # Creates the file compile_commands.json in the build directory.
 SET(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 include("cmake/HunterGate.cmake")
@@ -43,6 +43,7 @@ else()
 endif()
 
 catch_discover_tests(tests)
+target_compile_options(tests PUBLIC $<$<CXX_COMPILER_ID:MSVC>:/Zc:__cplusplus> )
 
 # Place the file in the source directory, permitting us to place a single configuration file for YCM there.
 # YCM is the code-completion engine for (neo)vim https://github.com/Valloric/YouCompleteMe

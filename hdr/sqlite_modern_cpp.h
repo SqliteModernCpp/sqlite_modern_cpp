@@ -85,15 +85,15 @@ namespace sqlite {
 			return ++_inx;
 		}
 
-		sqlite3_stmt* _prepare(const std::u16string& sql) {
+		sqlite3_stmt* _prepare(u16str_ref sql) {
 			return _prepare(utility::utf16_to_utf8(sql));
 		}
 
-		sqlite3_stmt* _prepare(const std::string& sql) {
+		sqlite3_stmt* _prepare(str_ref sql) {
 			int hresult;
 			sqlite3_stmt* tmp = nullptr;
 			const char *remaining;
-			hresult = sqlite3_prepare_v2(_db.get(), sql.data(), -1, &tmp, &remaining);
+			hresult = sqlite3_prepare_v2(_db.get(), sql.data(), sql.length(), &tmp, &remaining);
 			if(hresult != SQLITE_OK) errors::throw_sqlite_error(hresult, sql);
 			if(!std::all_of(remaining, sql.data() + sql.size(), [](char ch) {return std::isspace(ch);}))
 				throw errors::more_statements("Multiple semicolon separated statements are unsupported", sql);
@@ -105,13 +105,13 @@ namespace sqlite {
 
 	public:
 
-		database_binder(std::shared_ptr<sqlite3> db, std::u16string const & sql):
+		database_binder(std::shared_ptr<sqlite3> db, u16str_ref  sql):
 			_db(db),
 			_stmt(_prepare(sql), sqlite3_finalize),
 			_inx(0) {
 		}
 
-		database_binder(std::shared_ptr<sqlite3> db, std::string const & sql):
+		database_binder(std::shared_ptr<sqlite3> db, str_ref sql):
 			_db(db),
 			_stmt(_prepare(sql), sqlite3_finalize),
 			_inx(0) {
@@ -372,34 +372,20 @@ namespace sqlite {
 				*this << R"(PRAGMA encoding = "UTF-16";)";
 		}
 
-		database(const std::u16string &db_name, const sqlite_config &config = {}): _db(nullptr) {
-			auto db_name_utf8 = utility::utf16_to_utf8(db_name);
-			sqlite3* tmp = nullptr;
-			auto ret = sqlite3_open_v2(db_name_utf8.data(), &tmp, static_cast<int>(config.flags), config.zVfs);
-			_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); }); // this will close the connection eventually when no longer needed.
-			if(ret != SQLITE_OK) errors::throw_sqlite_error(_db ? sqlite3_extended_errcode(_db.get()) : ret);
-			sqlite3_extended_result_codes(_db.get(), true);
-			if(config.encoding != Encoding::UTF8)
+		database(const std::u16string &db_name, const sqlite_config &config = {}): database(utility::utf16_to_utf8(db_name), config) {
+			if (config.encoding == Encoding::ANY)
 				*this << R"(PRAGMA encoding = "UTF-16";)";
 		}
 
 		database(std::shared_ptr<sqlite3> db):
 			_db(db) {}
 
-		database_binder operator<<(const std::string& sql) {
+		database_binder operator<<(str_ref sql) {
 			return database_binder(_db, sql);
 		}
 
-		database_binder operator<<(const char* sql) {
-			return *this << std::string(sql);
-		}
-
-		database_binder operator<<(const std::u16string& sql) {
+		database_binder operator<<(u16str_ref sql) {
 			return database_binder(_db, sql);
-		}
-
-		database_binder operator<<(const char16_t* sql) {
-			return *this << std::u16string(sql);
 		}
 
 		connection_type connection() const { return _db; }
@@ -418,7 +404,7 @@ namespace sqlite {
 
 			auto funcPtr = new auto(std::forward<Function>(func));
 			if(int result = sqlite3_create_function_v2(
-					_db.get(), name.c_str(), traits::arity, SQLITE_UTF8, funcPtr,
+					_db.get(), name.data(), traits::arity, SQLITE_UTF8, funcPtr,
 					sql_function_binder::scalar<traits::arity, typename std::remove_reference<Function>::type>,
 					nullptr, nullptr, [](void* ptr){
 				delete static_cast<decltype(funcPtr)>(ptr);
@@ -652,3 +638,4 @@ namespace sqlite {
 		}
 	}
 }
+

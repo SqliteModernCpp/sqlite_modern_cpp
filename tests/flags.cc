@@ -13,8 +13,9 @@ struct TmpFile {
 	TmpFile(): fname("./flags.db") { }
 	~TmpFile() { remove(fname.c_str()); }
 };
-
-#if BYTE_ORDER == BIG_ENDIAN
+#ifdef _WIN32
+#define OUR_UTF16 "UTF-16le"
+#elif BYTE_ORDER == BIG_ENDIAN
 #define OUR_UTF16 "UTF-16be"
 #else
 #define OUR_UTF16 "UTF-16le"

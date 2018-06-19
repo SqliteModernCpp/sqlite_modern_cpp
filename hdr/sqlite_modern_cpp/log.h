@@ -93,9 +93,9 @@ namespace sqlite {
 			  }
 			});
 
-		sqlite3_config(SQLITE_CONFIG_LOG, (void(*)(void*,int,const char*))[](void *functor, int error_code, const char *errstr) {
+		sqlite3_config(SQLITE_CONFIG_LOG, static_cast<void(*)(void*,int,const char*)>([](void *functor, int error_code, const char *errstr) {
 				(*static_cast<decltype(ptr.get())>(functor))(error_code, errstr);
-			}, ptr.get());
+			}), ptr.get());
 		detail::store_error_log_data_pointer(std::move(ptr));
 	}
 }
