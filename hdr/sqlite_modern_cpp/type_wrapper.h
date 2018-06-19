@@ -53,6 +53,11 @@ namespace sqlite
 #include "errors.h"
 
 namespace sqlite {
+	// Whether or not SQlite should make a copy of the string or blob when binding to statements. Only use dont_make_copies when you are sure the reference passed will be valid at least until after the query gets executed
+	enum class binding_mode : bool
+	{
+		make_copies, dont_make_copies
+	};
 	template<class T, int Type, class = void>
 	struct has_sqlite_type : std::false_type {};
 	
@@ -84,7 +89,7 @@ namespace sqlite {
 	template<>
 	struct has_sqlite_type<int, SQLITE_INTEGER> : std::true_type {};
 
-	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const int& val) {
+	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const int& val, binding_mode) {
 		return sqlite3_bind_int(stmt, inx, val);
 	}
 	inline void store_result_in_db(sqlite3_context* db, const int& val) {
@@ -103,7 +108,7 @@ namespace sqlite {
 	template<>
 	struct has_sqlite_type<sqlite_int64, SQLITE_INTEGER, void> : std::true_type {};
 
-	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const sqlite_int64& val) {
+	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const sqlite_int64& val, binding_mode) {
 		return sqlite3_bind_int64(stmt, inx, val);
 	}
 	inline void store_result_in_db(sqlite3_context* db, const sqlite_int64& val) {
@@ -122,7 +127,7 @@ namespace sqlite {
 	template<>
 	struct has_sqlite_type<float, SQLITE_FLOAT, void> : std::true_type {};
 
-	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const float& val) {
+	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const float& val, binding_mode) {
 		return sqlite3_bind_double(stmt, inx, double(val));
 	}
 	inline void store_result_in_db(sqlite3_context* db, const float& val) {
@@ -141,7 +146,7 @@ namespace sqlite {
 	template<>
 	struct has_sqlite_type<double, SQLITE_FLOAT, void> : std::true_type {};
 
-	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const double& val) {
+	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const double& val, binding_mode) {
 		return sqlite3_bind_double(stmt, inx, val);
 	}
 	inline void store_result_in_db(sqlite3_context* db, const double& val) {
@@ -160,7 +165,7 @@ namespace sqlite {
 	template<>
 	struct has_sqlite_type<std::nullptr_t, SQLITE_NULL, void> : std::true_type {};
 
-	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, std::nullptr_t) {
+	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, std::nullptr_t, binding_mode) {
 		return sqlite3_bind_null(stmt, inx);
 	}
 	inline void store_result_in_db(sqlite3_context* db, std::nullptr_t) {
@@ -170,13 +175,19 @@ namespace sqlite {
 	// str_ref
 	template<>
 	struct has_sqlite_type<std::string, SQLITE3_TEXT, void> : std::true_type {};
-	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, str_ref val) {
-		return sqlite3_bind_text(stmt, inx, val.data(), val.length(), SQLITE_TRANSIENT);
+	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, str_ref val, binding_mode bmode) {
+		if(bmode == binding_mode::make_copies)
+			return sqlite3_bind_text(stmt, inx, val.data(), val.length(), SQLITE_TRANSIENT);
+		else
+			return sqlite3_bind_text(stmt, inx, val.data(), val.length(), SQLITE_STATIC);
 	}
 
 	// Convert char* to string_view to trigger op<<(..., const str_ref )
-	template<std::size_t N> inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const char(&STR)[N]) { 
-		return sqlite3_bind_text(stmt, inx, &STR[0], N-1, SQLITE_TRANSIENT); 
+	template<std::size_t N> inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const char(&STR)[N], binding_mode bmode) {
+		if (bmode == binding_mode::make_copies)
+			return sqlite3_bind_text(stmt, inx, &STR[0], N-1, SQLITE_TRANSIENT); 
+		else
+			return sqlite3_bind_text(stmt, inx, &STR[0], N - 1,	SQLITE_STATIC);
 	}
 
 	inline std::string get_col_from_db(sqlite3_stmt* stmt, int inx, result_type<std::string>) {
@@ -194,13 +205,19 @@ namespace sqlite {
 	// u16str_ref
 	template<>
 	struct has_sqlite_type<std::u16string, SQLITE3_TEXT, void> : std::true_type {};
-	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, u16str_ref val) {
-		return sqlite3_bind_text16(stmt, inx, val.data(), sizeof(char16_t) * val.length(), SQLITE_TRANSIENT);
+	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, u16str_ref val, binding_mode bmode) {
+		if (bmode == binding_mode::make_copies)
+			return sqlite3_bind_text16(stmt, inx, val.data(), sizeof(char16_t) * val.length(), SQLITE_TRANSIENT);
+		else
+			return sqlite3_bind_text16(stmt, inx, val.data(), sizeof(char16_t) * val.length(), SQLITE_STATIC);
 	}
 
 	// Convert char* to string_view to trigger op<<(..., const str_ref )
-	template<std::size_t N> inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const char16_t(&STR)[N]) { 
-		return sqlite3_bind_text16(stmt, inx, &STR[0], sizeof(char16_t) * (N-1), SQLITE_TRANSIENT);
+	template<std::size_t N> inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const char16_t(&STR)[N], binding_mode bmode) {
+		if(bmode == binding_mode::make_copies)
+			return sqlite3_bind_text16(stmt, inx, &STR[0],sizeof(char16_t) * (N-1), SQLITE_TRANSIENT);
+		else
+			return sqlite3_bind_text16(stmt, inx, &STR[0], sizeof(char16_t) * (N-1), SQLITE_STATIC);
 	}
 
 	inline std::u16string get_col_from_db(sqlite3_stmt* stmt, int inx, result_type<std::u16string>) {
@@ -221,8 +238,8 @@ namespace sqlite {
 	struct has_sqlite_type<Integral, SQLITE_INTEGER, typename std::enable_if<std::is_integral<Integral>::value>::type> : std::true_type {};
 
 	template<class Integral, class = typename std::enable_if<std::is_integral<Integral>::value>::type>
-	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const Integral& val) {
-		return bind_col_in_db(stmt, inx, static_cast<sqlite3_int64>(val));
+	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const Integral& val, binding_mode bmode) {
+		return bind_col_in_db(stmt, inx, static_cast<sqlite3_int64>(val), bmode);
 	}
 	template<class Integral, class = std::enable_if<std::is_integral<Integral>::type>>
 	inline void store_result_in_db(sqlite3_context* db, const Integral& val) {
@@ -241,10 +258,13 @@ namespace sqlite {
 	template<typename T, typename A>
 	struct has_sqlite_type<std::vector<T, A>, SQLITE_BLOB, void> : std::true_type {};
 
-	template<typename T, typename A> inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const std::vector<T, A>& vec) {
+	template<typename T, typename A> inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const std::vector<T, A>& vec, binding_mode bmode) {
 		void const* buf = reinterpret_cast<void const *>(vec.data());
 		int bytes = vec.size() * sizeof(T);
-		return sqlite3_bind_blob(stmt, inx, buf, bytes, SQLITE_TRANSIENT);
+		if(bmode == binding_mode::make_copies)
+			return sqlite3_bind_blob(stmt, inx, buf, bytes, SQLITE_TRANSIENT);
+		else
+			return sqlite3_bind_blob(stmt, inx, buf, bytes, SQLITE_STATIC);
 	}
 	template<typename T, typename A> inline void store_result_in_db(sqlite3_context* db, const std::vector<T, A>& vec) {
 		void const* buf = reinterpret_cast<void const *>(vec.data());
@@ -274,8 +294,8 @@ namespace sqlite {
 	template<typename T>
 	struct has_sqlite_type<std::unique_ptr<T>, SQLITE_NULL, void> : std::true_type {};
 
-	template<typename T> inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const std::unique_ptr<T>& val) {
-		return val ? bind_col_in_db(stmt, inx, *val) : bind_col_in_db(stmt, inx, nullptr);
+	template<typename T> inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const std::unique_ptr<T>& val, binding_mode bmode) {
+		return val ? bind_col_in_db(stmt, inx, *val, bmode) : bind_col_in_db(stmt, inx, nullptr, bmode);
 	}
 	template<typename T> inline std::unique_ptr<T> get_col_from_db(sqlite3_stmt* stmt, int inx, result_type<std::unique_ptr<T>>) {
 		if(sqlite3_column_type(stmt, inx) == SQLITE_NULL) {
@@ -305,8 +325,8 @@ namespace sqlite {
 	template<typename T>
 	struct has_sqlite_type<optional<T>, SQLITE_NULL, void> : std::true_type {};
 
-	template <typename OptionalT> inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const optional<OptionalT>& val) {
-		return val ? bind_col_in_db(stmt, inx, *val) : bind_col_in_db(stmt, inx, nullptr);
+	template <typename OptionalT> inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const optional<OptionalT>& val, binding_mode bmode) {
+		return val ? bind_col_in_db(stmt, inx, *val, bmode) : bind_col_in_db(stmt, inx, nullptr, bmode);
 	}
 	template <typename OptionalT> inline void store_result_in_db(sqlite3_context* db, const optional<OptionalT>& val) {
 		if(val)
@@ -380,8 +400,8 @@ namespace sqlite {
 #endif
 		}
 	}
-	template <typename ...Args> inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const std::variant<Args...>& val) {
-		return std::visit([&](auto &&opt) {return bind_col_in_db(stmt, inx, std::forward<decltype(opt)>(opt));}, val);
+	template <typename ...Args> inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const std::variant<Args...>& val, binding_mode bmode) {
+		return std::visit([&](auto &&opt) {return bind_col_in_db(stmt, inx, std::forward<decltype(opt)>(opt), bmode);}, val);
 	}
 	template <typename ...Args> inline void store_result_in_db(sqlite3_context* db, const std::variant<Args...>& val) {
 		std::visit([&](auto &&opt) {store_result_in_db(db, std::forward<decltype(opt)>(opt));}, val);

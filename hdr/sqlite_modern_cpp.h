@@ -27,6 +27,7 @@ namespace sqlite {
 	typedef std::shared_ptr<sqlite3> connection_type;
 
 	class row_iterator;
+
 	class database_binder {
 
 	public:
@@ -38,7 +39,8 @@ namespace sqlite {
 		database_binder(database_binder&& other) :
 			_db(std::move(other._db)),
 			_stmt(std::move(other._stmt)),
-			_inx(other._inx), execution_started(other.execution_started) { }
+			_inx(other._inx), execution_started(other.execution_started),
+			bind_mode(std::move(other.bind_mode)){ }
 
 		void execute();
 
@@ -69,6 +71,7 @@ namespace sqlite {
 		row_iterator end();
 
 	private:
+		binding_mode bind_mode;
 		std::shared_ptr<sqlite3> _db;
 		std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> _stmt;
 		utility::UncaughtExceptionDetector _has_uncaught_exception;
@@ -105,17 +108,17 @@ namespace sqlite {
 
 	public:
 
-		database_binder(std::shared_ptr<sqlite3> db, u16str_ref  sql):
+		database_binder(std::shared_ptr<sqlite3> db, u16str_ref  sql, binding_mode bmode):
 			_db(db),
 			_stmt(_prepare(sql), sqlite3_finalize),
-			_inx(0) {
-		}
+			_inx(0),
+			bind_mode(bmode){}
 
-		database_binder(std::shared_ptr<sqlite3> db, str_ref sql):
+		database_binder(std::shared_ptr<sqlite3> db, str_ref sql, binding_mode bmode):
 			_db(db),
 			_stmt(_prepare(sql), sqlite3_finalize),
-			_inx(0) {
-		}
+			_inx(0),
+			bind_mode(bmode){}
 
 		~database_binder() noexcept(false) {
 			/* Will be executed if no >>op is found, but not if an exception
@@ -124,7 +127,10 @@ namespace sqlite {
 				execute();
 			}
 		}
-
+		database_binder & operator << (binding_mode bmode)
+		{
+			bind_mode = bmode;
+		}
 		friend class row_iterator;
 	};
 
@@ -355,6 +361,7 @@ namespace sqlite {
 		OpenFlags flags = OpenFlags::READWRITE | OpenFlags::CREATE;
 		const char *zVfs = nullptr;
 		Encoding encoding = Encoding::ANY;
+		binding_mode bind_mode = binding_mode::make_copies;
 	};
 
 	class database {
@@ -362,7 +369,8 @@ namespace sqlite {
 		std::shared_ptr<sqlite3> _db;
 
 	public:
-		database(const std::string &db_name, const sqlite_config &config = {}): _db(nullptr) {
+		binding_mode Default_Bind_Mode;
+		database(const std::string &db_name, const sqlite_config &config = {}): _db(nullptr), Default_Bind_Mode(config.bind_mode){
 			sqlite3* tmp = nullptr;
 			auto ret = sqlite3_open_v2(db_name.data(), &tmp, static_cast<int>(config.flags), config.zVfs);
 			_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); }); // this will close the connection eventually when no longer needed.
@@ -381,11 +389,11 @@ namespace sqlite {
 			_db(db) {}
 
 		database_binder operator<<(str_ref sql) {
-			return database_binder(_db, sql);
+			return database_binder(_db, sql, Default_Bind_Mode);
 		}
 
 		database_binder operator<<(u16str_ref sql) {
-			return database_binder(_db, sql);
+			return database_binder(_db, sql, Default_Bind_Mode);
 		}
 
 		connection_type connection() const { return _db; }
@@ -481,7 +489,7 @@ namespace sqlite {
 	void inline operator++(database_binder& db, int) { db.execute(); }
 
 	template<typename T> database_binder &operator<<(database_binder& db, T&& val) {
-		int result = bind_col_in_db(db._stmt.get(), db._next_index(), std::forward<T>(val));
+		int result = bind_col_in_db(db._stmt.get(), db._next_index(), std::forward<T>(val), db.bind_mode);
 		if(result != SQLITE_OK)
 			exceptions::throw_sqlite_error(result, db.sql());
 		return db;
