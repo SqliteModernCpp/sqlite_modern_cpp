@@ -30,9 +30,9 @@ int main() {
       // binds the fields to '?' .
       // note that only types allowed for bindings are :
       //      int ,long, long long, float, double
-      //      string , u16string
+      //      string, u16string
       // sqlite3 only supports utf8 and utf16 strings, you should use std::string for utf8 and std::u16string for utf16.
-	  // If you're using c++17, it takes `string_view` and `u16string_view` as arguments
+      // If you're using C++17, `std::string_view` and `std::u16string_view` can be used as string types.
       // note that u"my text" is a utf16 string literal of type char16_t * .
       db << "insert into user (age,name,weight) values (?,?,?);"
          << 20

@@ -105,7 +105,7 @@ namespace sqlite {
 
 	public:
 
-		database_binder(std::shared_ptr<sqlite3> db, u16str_ref  sql):
+		database_binder(std::shared_ptr<sqlite3> db, u16str_ref sql):
 			_db(db),
 			_stmt(_prepare(sql), sqlite3_finalize),
 			_inx(0) {

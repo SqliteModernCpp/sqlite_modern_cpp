@@ -1,5 +1,3 @@
-#include <iostream>
-#include <cstdlib>
 #include <sqlite_modern_cpp.h>
 #include <catch.hpp>
 
@@ -8,9 +6,8 @@
 #include <string_view>
 
 using namespace sqlite;
-using namespace std;
 TEST_CASE("std::string_view works", "[string_view]") {
-	database db(":memory:");;
+	database db(":memory:");
 	db << "CREATE TABLE foo (a integer, b string);\n";
 	const std::string_view test1 = "null terminated string view";
 	db << "INSERT INTO foo VALUES (?, ?)" << 1 << test1;
