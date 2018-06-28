@@ -11,7 +11,7 @@ TEST_CASE("binding named parameters works", "[named]") {
     db << "CREATE TABLE foo (a,b);";
 
     int a = 1;
-    db << "INSERT INTO foo VALUES (:first,:second)" << ":second"_sqlparam(2) << ":first"_sqlparam(a);
+    db << "INSERT INTO foo VALUES (:first,:second)" << named_parameter(":second", 2) << named_parameter(":first", a);
 
     db << "SELECT b FROM foo WHERE a=?;" << 1 >> a;
 

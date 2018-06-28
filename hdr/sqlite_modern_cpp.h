@@ -36,17 +36,13 @@ namespace sqlite {
 		T value;
 	};
 
-	inline namespace literals {
-		inline auto operator ""_sqlparam(const char *name, std::size_t) {
-			return [name](auto &&arg) {
-				return index_binding_helper<decltype(arg), true>{name, std::forward<decltype(arg)>(arg)};
-			};
-		}
-		inline auto operator ""_sqlparam(unsigned long long index) {
-			return [index](auto &&arg) {
-				return index_binding_helper<decltype(arg)>{index, std::forward<decltype(arg)>(arg)};
-			};
-		}
+	template<class T>
+	auto named_parameter(const char *name, T &&arg) {
+		return index_binding_helper<decltype(arg), true>{name, std::forward<decltype(arg)>(arg)};
+	}
+	template<class T>
+	auto indexed_parameter(int index, T &&arg) {
+		return index_binding_helper<decltype(arg)>{index, std::forward<decltype(arg)>(arg)};
 	}
 
 	class row_iterator;
