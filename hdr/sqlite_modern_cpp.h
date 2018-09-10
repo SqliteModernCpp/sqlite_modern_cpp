@@ -26,6 +26,25 @@ namespace sqlite {
 
 	typedef std::shared_ptr<sqlite3> connection_type;
 
+	template<class T, bool Name = false>
+	struct index_binding_helper {
+		index_binding_helper(const index_binding_helper &) = delete;
+#if __cplusplus < 201703
+		index_binding_helper(index_binding_helper &&) = default;
+#endif
+		typename std::conditional<Name, const char *, int>::type index;
+		T value;
+	};
+
+	template<class T>
+	auto named_parameter(const char *name, T &&arg) {
+		return index_binding_helper<decltype(arg), true>{name, std::forward<decltype(arg)>(arg)};
+	}
+	template<class T>
+	auto indexed_parameter(int index, T &&arg) {
+		return index_binding_helper<decltype(arg)>{index, std::forward<decltype(arg)>(arg)};
+	}
+
 	class row_iterator;
 	class database_binder {
 
@@ -101,6 +120,8 @@ namespace sqlite {
 		}
 
 		template<typename T> friend database_binder& operator<<(database_binder& db, T&&);
+		template<typename T> friend database_binder& operator<<(database_binder& db, index_binding_helper<T>);
+		template<typename T> friend database_binder& operator<<(database_binder& db, index_binding_helper<T, true>);
 		friend void operator++(database_binder& db, int);
 
 	public:
@@ -480,6 +501,25 @@ namespace sqlite {
 	// Some ppl are lazy so we have a operator for proper prep. statemant handling.
 	void inline operator++(database_binder& db, int) { db.execute(); }
 
+	template<typename T> database_binder &operator<<(database_binder& db, index_binding_helper<T> val) {
+		db._next_index(); --db._inx;
+		int result = bind_col_in_db(db._stmt.get(), val.index, std::forward<T>(val.value));
+		if(result != SQLITE_OK)
+			exceptions::throw_sqlite_error(result, db.sql());
+		return db;
+	}
+
+	template<typename T> database_binder &operator<<(database_binder& db, index_binding_helper<T, true> val) {
+		db._next_index(); --db._inx;
+		int index = sqlite3_bind_parameter_index(db._stmt.get(), val.index);
+		if(!index)
+			throw errors::unknown_binding("The given binding name is not valid for this statement", db.sql());
+		int result = bind_col_in_db(db._stmt.get(), index, std::forward<T>(val.value));
+		if(result != SQLITE_OK)
+			exceptions::throw_sqlite_error(result, db.sql());
+		return db;
+	}
+
 	template<typename T> database_binder &operator<<(database_binder& db, T&& val) {
 		int result = bind_col_in_db(db._stmt.get(), db._next_index(), std::forward<T>(val));
 		if(result != SQLITE_OK)
@@ -488,6 +528,7 @@ namespace sqlite {
 	}
 	// Convert the rValue binder to a reference and call first op<<, its needed for the call that creates the binder (be carefull of recursion here!)
 	template<typename T> database_binder operator << (database_binder&& db, const T& val) { db << val; return std::move(db); }
+	template<typename T, bool Name> database_binder operator << (database_binder&& db, index_binding_helper<T, Name> val) { db << index_binding_helper<T, Name>{val.index, std::forward<T>(val.value)}; return std::move(db); }
 
 	namespace sql_function_binder {
 		template<class T>
