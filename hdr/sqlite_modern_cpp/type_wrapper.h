@@ -166,6 +166,12 @@ namespace sqlite {
 	inline void store_result_in_db(sqlite3_context* db, std::nullptr_t) {
 		sqlite3_result_null(db);
 	}
+	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, std::monostate) {
+		return sqlite3_bind_null(stmt, inx);
+	}
+	inline void store_result_in_db(sqlite3_context* db, std::monostate) {
+		sqlite3_result_null(db);
+	}
 
 	// str_ref
 	template<>
@@ -289,7 +295,6 @@ namespace sqlite {
 		}
 		return std::make_unique<T>(get_val_from_db(value, result_type<T>()));
 	}
-
 	// std::optional support for NULL values
 #ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 #ifdef MODERN_SQLITE_EXPERIMENTAL_OPTIONAL_SUPPORT
@@ -351,7 +356,7 @@ namespace sqlite {
 
 	template<int Type, class ...Options>
 	struct has_sqlite_type<std::variant<Options...>, Type, void> : std::disjunction<detail::tag_trait<Options, has_sqlite_type<Options, Type>>...> {};
-
+  
 	namespace detail {
 		template<int Type, typename ...Options, typename Callback, typename first_compatible = has_sqlite_type<std::variant<Options...>, Type>>
 		inline std::variant<Options...> variant_select_type(Callback &&callback) {
