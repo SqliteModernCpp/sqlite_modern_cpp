@@ -896,7 +896,7 @@ namespace sqlite {
 			val = std::move(v);
 		});
 	}
-  //Monotype as null support
+  //Monostate as null support
   inline database_binder& operator <<(database_binder& db,const std::monostate& ms){
     return db << nullptr;
   }
