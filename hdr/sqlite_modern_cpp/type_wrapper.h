@@ -166,12 +166,14 @@ namespace sqlite {
 	inline void store_result_in_db(sqlite3_context* db, std::nullptr_t) {
 		sqlite3_result_null(db);
 	}
+#ifdef MODERN_SQLITE_STD_VARIANT_SUPPORT
 	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, std::monostate) {
 		return sqlite3_bind_null(stmt, inx);
 	}
 	inline void store_result_in_db(sqlite3_context* db, std::monostate) {
 		sqlite3_result_null(db);
 	}
+#endif
 
 	// str_ref
 	template<>
