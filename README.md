@@ -370,6 +370,7 @@ This does not happen if you use a `variant`.
 If the `variant` does an alternative of the same value type, an `mismatch` exception will be thrown.
 The value types are NULL, integer, real number, text and BLOB.
 To support all possible values, you can use `variant<nullptr_t, sqlite_int64, double, string, vector<char>`.
+It is also possible to use a variant with `std::monostate` in order to catch null values.
 
 Errors
 ----
