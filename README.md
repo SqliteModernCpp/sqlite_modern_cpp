@@ -140,7 +140,7 @@ Shared Connections
 ----
 If you need the handle to the database connection to execute sqlite3 commands directly you can get a managed shared_ptr to it, so it will not close as long as you have a referenc to it.
 
-Take this example on how to deal with a database backup using SQLITEs own functions in a save and modern way.
+Take this example on how to deal with a database backup using SQLITEs own functions in a safe and modern way.
 ```c++
 try {
    database backup("backup");		//Open the database file we want to backup to
