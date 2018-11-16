@@ -171,7 +171,6 @@ namespace sqlite {
 	struct has_sqlite_type<std::monostate, SQLITE_NULL, void> : std::true_type {};
   
 	inline std::monostate get_col_from_db(sqlite3_stmt* stmt, int inx, result_type<std::monostate>) {
-    if(sqlite3_column_type(stmt,inx) != SQLITE_NULL) throw 1;
     return std::monostate();
   }
 	inline std::monostate get_val_from_db(sqlite3_value *value, result_type<std::monostate>) {
