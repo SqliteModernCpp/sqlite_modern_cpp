@@ -29,4 +29,29 @@ TEST_CASE("std::variant works", "[variant]") {
     db << "SELECT 0.0" >> v;
     REQUIRE(std::get<2>(v)); 
 }
+
+TEST_CASE("std::monostate is a nullptr substitute", "[monostate]") {
+    database db(":memory:");
+    db << "CREATE TABLE foo (a);";
+
+    std::variant<std::monostate,std::string> v;
+    v=std::monostate();
+    db << "INSERT INTO foo VALUES (?)" << v;
+    db << "INSERT INTO foo VALUES (?)" << "This isn't a monostate!";
+
+    bool found_null   = false,
+         found_string = false;
+
+    db << "SELECT * FROM foo"
+    	 >> [&](std::variant<std::monostate, std::string> z) {
+      if(z.index() == 0) {
+        found_null = true;
+      } else {
+        found_string = true;
+      }
+    };
+    REQUIRE((found_null && found_string));
+    db << "SELECT NULL" >> v;
+    REQUIRE(v.index() == 0);
+}
 #endif

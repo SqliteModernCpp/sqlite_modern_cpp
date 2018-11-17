@@ -167,6 +167,24 @@ namespace sqlite {
 		sqlite3_result_null(db);
 	}
 
+#ifdef MODERN_SQLITE_STD_VARIANT_SUPPORT
+	template<>
+	struct has_sqlite_type<std::monostate, SQLITE_NULL, void> : std::true_type {};
+
+	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, std::monostate) {
+		return sqlite3_bind_null(stmt, inx);
+	}
+	inline void store_result_in_db(sqlite3_context* db, std::monostate) {
+		sqlite3_result_null(db);
+	}
+	inline std::monostate get_col_from_db(sqlite3_stmt* stmt, int inx, result_type<std::monostate>) {
+		return std::monostate();
+	}
+	inline std::monostate get_val_from_db(sqlite3_value *value, result_type<std::monostate>) {
+		return std::monostate();
+	}
+#endif
+
 	// str_ref
 	template<>
 	struct has_sqlite_type<std::string, SQLITE3_TEXT, void> : std::true_type {};
