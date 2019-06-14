@@ -49,6 +49,13 @@ namespace sqlite {
 					case SQLITE_ ## NAME:                             \
 					default: throw name(error_code, sql);             \
 				}
+
+#if SQLITE_VERSION_NUMBER < 3010000
+#define SQLITE_IOERR_VNODE (SQLITE_IOERR | (27<<8))
+#define SQLITE_IOERR_AUTH (SQLITE_IOERR | (28<<8))
+#define SQLITE_AUTH_USER (SQLITE_AUTH | (1<<8))
+#endif
+
 #define SQLITE_MODERN_CPP_ERROR_CODE_EXTENDED(BASE,SUB,base,sub) \
 					case SQLITE_ ## BASE ## _ ## SUB: throw base ## _ ## sub(error_code, sql);
 #include "lists/error_codes.h"
