@@ -14,7 +14,7 @@
 #ifdef __has_include
 #if __cplusplus > 201402 && __has_include(<optional>)
 #define MODERN_SQLITE_STD_OPTIONAL_SUPPORT
-#elif __has_include(<experimental/optional>)
+#elif __has_include(<experimental/optional>) && __apple_build_version__ < 11000000
 #define MODERN_SQLITE_EXPERIMENTAL_OPTIONAL_SUPPORT
 #endif
 #endif
