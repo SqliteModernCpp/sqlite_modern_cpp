@@ -113,7 +113,7 @@ namespace sqlite {
 			sqlite3_stmt* tmp = nullptr;
 			const char *remaining;
 			hresult = sqlite3_prepare_v2(_db.get(), sql.data(), sql.length(), &tmp, &remaining);
-			if(hresult != SQLITE_OK) errors::throw_sqlite_error(hresult, sql);
+			if(hresult != SQLITE_OK) errors::throw_sqlite_error(hresult, sql, sqlite3_errmsg(_db.get()));
 			if(!std::all_of(remaining, sql.data() + sql.size(), [](char ch) {return std::isspace(ch);}))
 				throw errors::more_statements("Multiple semicolon separated statements are unsupported", sql);
 			return tmp;
@@ -214,7 +214,7 @@ namespace sqlite {
 					_binder = nullptr;
 					break;
 				default:
-					exceptions::throw_sqlite_error(result, _binder->sql());
+					exceptions::throw_sqlite_error(result, _binder->sql(), sqlite3_errmsg(_binder->_db.get()));
 			}
 			return *this;
 		}
@@ -387,7 +387,7 @@ namespace sqlite {
 			sqlite3* tmp = nullptr;
 			auto ret = sqlite3_open_v2(db_name.data(), &tmp, static_cast<int>(config.flags), config.zVfs);
 			_db = std::shared_ptr<sqlite3>(tmp, [=](sqlite3* ptr) { sqlite3_close_v2(ptr); }); // this will close the connection eventually when no longer needed.
-			if(ret != SQLITE_OK) errors::throw_sqlite_error(_db ? sqlite3_extended_errcode(_db.get()) : ret);
+			if(ret != SQLITE_OK) errors::throw_sqlite_error(_db ? sqlite3_extended_errcode(_db.get()) : ret, {}, sqlite3_errmsg(_db.get()));
 			sqlite3_extended_result_codes(_db.get(), true);
 			if(config.encoding == Encoding::UTF16)
 				*this << R"(PRAGMA encoding = "UTF-16";)";
@@ -430,7 +430,7 @@ namespace sqlite {
 					nullptr, nullptr, [](void* ptr){
 				delete static_cast<decltype(funcPtr)>(ptr);
 			}))
-				errors::throw_sqlite_error(result);
+				errors::throw_sqlite_error(result, {}, sqlite3_errmsg(_db.get()));
 		}
 
 		template <typename StepFunction, typename FinalFunction>
@@ -446,7 +446,7 @@ namespace sqlite {
 					[](void* ptr){
 				delete static_cast<decltype(funcPtr)>(ptr);
 			}))
-				errors::throw_sqlite_error(result);
+				errors::throw_sqlite_error(result, {}, sqlite3_errmsg(_db.get()));
 		}
 
 	};
@@ -505,7 +505,7 @@ namespace sqlite {
 		db._next_index(); --db._inx;
 		int result = bind_col_in_db(db._stmt.get(), val.index, std::forward<T>(val.value));
 		if(result != SQLITE_OK)
-			exceptions::throw_sqlite_error(result, db.sql());
+			exceptions::throw_sqlite_error(result, db.sql(), sqlite3_errmsg(db._db.get()));
 		return db;
 	}
 
@@ -516,14 +516,14 @@ namespace sqlite {
 			throw errors::unknown_binding("The given binding name is not valid for this statement", db.sql());
 		int result = bind_col_in_db(db._stmt.get(), index, std::forward<T>(val.value));
 		if(result != SQLITE_OK)
-			exceptions::throw_sqlite_error(result, db.sql());
+			exceptions::throw_sqlite_error(result, db.sql(), sqlite3_errmsg(db._db.get()));
 		return db;
 	}
 
 	template<typename T> database_binder &operator<<(database_binder& db, T&& val) {
 		int result = bind_col_in_db(db._stmt.get(), db._next_index(), std::forward<T>(val));
 		if(result != SQLITE_OK)
-			exceptions::throw_sqlite_error(result, db.sql());
+			exceptions::throw_sqlite_error(result, db.sql(), sqlite3_errmsg(db._db.get()));
 		return db;
 	}
 	// Convert the rValue binder to a reference and call first op<<, its needed for the call that creates the binder (be carefull of recursion here!)

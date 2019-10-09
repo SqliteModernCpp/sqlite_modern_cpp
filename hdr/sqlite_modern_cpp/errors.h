@@ -10,10 +10,11 @@ namespace sqlite {
 	class sqlite_exception: public std::runtime_error {
 	public:
 		sqlite_exception(const char* msg, str_ref sql, int code = -1): runtime_error(msg), code(code), sql(sql) {}
-		sqlite_exception(int code, str_ref sql): runtime_error(sqlite3_errstr(code)), code(code), sql(sql) {}
+		sqlite_exception(int code, str_ref sql, const char *msg = nullptr): runtime_error(msg ? msg : sqlite3_errstr(code)), code(code), sql(sql) {}
 		int get_code() const {return code & 0xFF;}
 		int get_extended_code() const {return code;}
 		std::string get_sql() const {return sql;}
+		const char *errstr() const {return code == -1 ? "Unknown error" : sqlite3_errstr(code);}
 	private:
 		int code;
 		std::string sql;
@@ -41,7 +42,7 @@ namespace sqlite {
 		class invalid_utf16: public sqlite_exception { using sqlite_exception::sqlite_exception; };
 		class unknown_binding: public sqlite_exception { using sqlite_exception::sqlite_exception; };
 
-		static void throw_sqlite_error(const int& error_code, str_ref sql = "") {
+		static void throw_sqlite_error(const int& error_code, str_ref sql = "", const char *errmsg = nullptr) {
 			switch(error_code & 0xFF) {
 #define SQLITE_MODERN_CPP_ERROR_CODE(NAME,name,derived)     \
 				case SQLITE_ ## NAME: switch(error_code) {          \
@@ -57,11 +58,11 @@ namespace sqlite {
 #endif
 
 #define SQLITE_MODERN_CPP_ERROR_CODE_EXTENDED(BASE,SUB,base,sub) \
-					case SQLITE_ ## BASE ## _ ## SUB: throw base ## _ ## sub(error_code, sql);
+					case SQLITE_ ## BASE ## _ ## SUB: throw base ## _ ## sub(error_code, sql, errmsg);
 #include "lists/error_codes.h"
 #undef SQLITE_MODERN_CPP_ERROR_CODE_EXTENDED
 #undef SQLITE_MODERN_CPP_ERROR_CODE
-				default: throw sqlite_exception(error_code, sql);
+				default: throw sqlite_exception(error_code, sql, errmsg);
 			}
 		}
 	}
