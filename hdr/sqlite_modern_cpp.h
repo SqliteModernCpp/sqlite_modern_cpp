@@ -12,16 +12,20 @@
 #define MODERN_SQLITE_VERSION 3002008
 
 #ifdef __has_include
-#if __cplusplus > 201402 && __has_include(<optional>)
+#if __cplusplus > 201402
+#if __has_include(<optional>)
 #define MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 #elif __has_include(<experimental/optional>)
 #define MODERN_SQLITE_EXPERIMENTAL_OPTIONAL_SUPPORT
 #endif
 #endif
+#endif
 
 #ifdef __has_include
-#if __cplusplus > 201402 && __has_include(<variant>)
+#if __cplusplus > 201402
+#if __has_include(<variant>)
 #define MODERN_SQLITE_STD_VARIANT_SUPPORT
+#endif
 #endif
 #endif
 
