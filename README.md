@@ -57,7 +57,7 @@ int main() {
          };
 
       // selects the count(*) from user table
-      // note that you can extract a single culumn single row result only to : int,long,long,float,double,string,u16string
+      // note that you can extract a single culumn single row result only to : int,long,long long,float,double,string,u16string
       int count = 0;
       db << "select count(*) from user" >> count;
       cout << "cout : " << count << endl;
