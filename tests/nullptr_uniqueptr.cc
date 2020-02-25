@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 #include <sqlite_modern_cpp.h>
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 using namespace std;
 using namespace sqlite;
 

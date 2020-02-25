@@ -3,14 +3,14 @@
 #include <cstdlib>
 #include <sqlite_modern_cpp.h>
 #include <sys/types.h>
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 using namespace sqlite;
 using namespace std;
 
 struct TmpFile {
 	string fname;
 
-	TmpFile(): fname("./flags.db") { }
+	TmpFile(): fname(".\\flags.db") { }
 	~TmpFile() { remove(fname.c_str()); }
 };
 #ifdef _WIN32
