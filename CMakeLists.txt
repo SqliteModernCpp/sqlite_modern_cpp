@@ -6,12 +6,13 @@ SET(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set (CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
+set(HUNTER_TLS_VERIFY ON)
 include("cmake/HunterGate.cmake")
 include("cmake/Catch.cmake")
 
 HunterGate(
-    URL "https://github.com/ruslo/hunter/archive/v0.19.227.tar.gz"
-    SHA1 "808b778a443fcdf19c2d18fea8fa4bb59d16596a"
+    URL "https://github.com/ruslo/hunter/archive/v0.23.214.tar.gz"
+    SHA1 "e14bc153a7f16d6a5eeec845fb0283c8fad8c358"
 )
 
 project(SqliteModernCpp)
@@ -19,7 +20,7 @@ project(SqliteModernCpp)
 hunter_add_package(Catch)
 hunter_add_package(sqlite3)
 
-find_package(Catch CONFIG REQUIRED)
+find_package(Catch2 CONFIG REQUIRED)
 find_package(sqlite3 CONFIG REQUIRED)
 
 set(TEST_SOURCE_DIR             ${CMAKE_SOURCE_DIR}/tests)
@@ -37,9 +38,9 @@ target_include_directories(sqlite_modern_cpp INTERFACE hdr/)
 add_executable(tests_runner ${TEST_SOURCES})
 target_include_directories(tests_runner INTERFACE ${SQLITE3_INCLUDE_DIRS})
 if(ENABLE_SQLCIPHER_TESTS)
-    target_link_libraries(tests_runner Catch::Catch sqlite_modern_cpp sqlite3::sqlite3 -lsqlcipher)
+    target_link_libraries(tests Catch2::Catch2 sqlite_modern_cpp sqlite3::sqlite3 -lsqlcipher)
 else()
-    target_link_libraries(tests_runner Catch::Catch sqlite_modern_cpp sqlite3::sqlite3)
+    target_link_libraries(tests Catch2::Catch2 sqlite_modern_cpp sqlite3::sqlite3)
 endif()
 
 catch_discover_tests(tests_runner)

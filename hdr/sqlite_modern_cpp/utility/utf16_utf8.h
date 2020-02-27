@@ -17,7 +17,7 @@ namespace sqlite {
 			std::size_t produced_output = 0;
 			while(true) {
 				char *used_output;
-				switch(codecvt.out(state, remaining_input, &input[input.size()],
+				switch(codecvt.out(state, remaining_input, input.data() + input.size(),
 				                   remaining_input, &result[produced_output],
 				                   &result[result.size() - 1] + 1, used_output)) {
 				case std::codecvt_base::ok:
@@ -33,7 +33,7 @@ namespace sqlite {
 					produced_output = used_output - result.data();
 					result.resize(
 							result.size()
-							+ (std::max)((&input[input.size()] - remaining_input) * 3 / 2,
+							+ (std::max)((input.data() + input.size() - remaining_input) * 3 / 2,
 							           std::ptrdiff_t(4)));
 				}
 			}
