@@ -193,17 +193,25 @@ namespace sqlite {
 	}
 
 	// Convert char* to string_view to trigger op<<(..., const str_ref )
-	template<std::size_t N> inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const char(&STR)[N]) { 
-		return sqlite3_bind_text(stmt, inx, &STR[0], N-1, SQLITE_TRANSIENT); 
+	template<std::size_t N> inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, const char(&STR)[N]) {
+		return sqlite3_bind_text(stmt, inx, &STR[0], N-1, SQLITE_TRANSIENT);
 	}
 
 	inline std::string get_col_from_db(sqlite3_stmt* stmt, int inx, result_type<std::string>) {
-		return sqlite3_column_type(stmt, inx) == SQLITE_NULL ? std::string() :
-			std::string(reinterpret_cast<char const *>(sqlite3_column_text(stmt, inx)), sqlite3_column_bytes(stmt, inx));
+		if ( sqlite3_column_type(stmt, inx) == SQLITE_NULL ) {
+			return std::string();
+		}
+		char const * ptr = reinterpret_cast<char const *>(sqlite3_column_text(stmt, inx));
+		// call sqlite3_column_text explicitely before sqlite3_column_bytes: it may convert the value to text
+		return std::string(ptr, sqlite3_column_bytes(stmt, inx));
 	}
-	inline std::string  get_val_from_db(sqlite3_value *value, result_type<std::string >) {
-		return sqlite3_value_type(value) == SQLITE_NULL ? std::string() :
-			std::string(reinterpret_cast<char const *>(sqlite3_value_text(value)), sqlite3_value_bytes(value));
+	inline std::string  get_val_from_db(sqlite3_value *value, result_type<std::string>) {
+		if ( sqlite3_value_type(value) == SQLITE_NULL ) {
+			return std::string();
+		}
+		char const * ptr = reinterpret_cast<char const *>(sqlite3_value_text(value));
+		// call sqlite3_column_text explicitely before sqlite3_column_bytes: it may convert the value to text
+		return std::string(ptr, sqlite3_value_bytes(value));
 	}
 
 	inline void store_result_in_db(sqlite3_context* db, str_ref val) {
@@ -222,12 +230,19 @@ namespace sqlite {
 	}
 
 	inline std::u16string get_col_from_db(sqlite3_stmt* stmt, int inx, result_type<std::u16string>) {
-		return sqlite3_column_type(stmt, inx) == SQLITE_NULL ? std::u16string() :
-			std::u16string(reinterpret_cast<char16_t const *>(sqlite3_column_text16(stmt, inx)), sqlite3_column_bytes16(stmt, inx));
+		if ( sqlite3_column_type(stmt, inx) == SQLITE_NULL ) {
+			return std::u16string();
+		}
+		char16_t const * ptr = reinterpret_cast<char16_t const *>(sqlite3_column_text16(stmt, inx));
+		// call sqlite3_column_text16 explicitely before sqlite3_column_bytes16: it may convert the value to text
+		return std::u16string(ptr, sqlite3_column_bytes16(stmt, inx));
 	}
 	inline std::u16string  get_val_from_db(sqlite3_value *value, result_type<std::u16string>) {
-		return sqlite3_value_type(value) == SQLITE_NULL ? std::u16string() :
-			std::u16string(reinterpret_cast<char16_t const *>(sqlite3_value_text16(value)), sqlite3_value_bytes16(value));
+		if ( sqlite3_value_type(value) == SQLITE_NULL ) {
+			return std::u16string();
+		}
+		char16_t const * ptr = reinterpret_cast<char16_t const *>(sqlite3_value_text16(value));
+		return std::u16string(ptr, sqlite3_value_bytes16(value));
 	}
 
 	inline void store_result_in_db(sqlite3_context* db, u16str_ref val) {
@@ -273,16 +288,16 @@ namespace sqlite {
 		if(sqlite3_column_type(stmt, inx) == SQLITE_NULL) {
 			return {};
 		}
-		int bytes = sqlite3_column_bytes(stmt, inx);
 		T const* buf = reinterpret_cast<T const *>(sqlite3_column_blob(stmt, inx));
+		int bytes = sqlite3_column_bytes(stmt, inx);
 		return std::vector<T, A>(buf, buf + bytes/sizeof(T));
 	}
 	template<typename T, typename A> inline std::vector<T, A> get_val_from_db(sqlite3_value *value, result_type<std::vector<T, A>>) {
 		if(sqlite3_value_type(value) == SQLITE_NULL) {
 			return {};
 		}
-		int bytes = sqlite3_value_bytes(value);
 		T const* buf = reinterpret_cast<T const *>(sqlite3_value_blob(value));
+		int bytes = sqlite3_value_bytes(value);
 		return std::vector<T, A>(buf, buf + bytes/sizeof(T));
 	}
 
