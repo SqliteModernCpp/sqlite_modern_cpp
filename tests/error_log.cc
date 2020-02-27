@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <sqlite_modern_cpp.h>
 #include <sqlite_modern_cpp/log.h>
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 using namespace sqlite;
 using namespace std;
 

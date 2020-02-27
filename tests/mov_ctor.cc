@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <sqlite_modern_cpp.h>
 #include <memory>
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 using namespace  sqlite;
 using namespace std;
 
