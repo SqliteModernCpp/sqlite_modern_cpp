@@ -38,6 +38,12 @@
 #include <boost/optional.hpp>
 #endif
 
+#ifdef __ENVIRONMENT_IPHONE_OS_VERSION_MIN_REQUIRED__
+#if __ENVIRONMENT_IPHONE_OS_VERSION_MIN_REQUIRED__ < 100000
+#undef __cpp_lib_uncaught_exceptions
+#endif
+#endif
+
 #include <sqlite3.h>
 
 #include "sqlite_modern_cpp/errors.h"
