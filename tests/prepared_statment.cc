@@ -85,7 +85,7 @@ int main() {
 		}
 
 
-	} catch(sqlite_exception e) {
+	} catch(const sqlite_exception& e) {
 		cout << "Unexpected error " << e.what() << endl;
 		exit(EXIT_FAILURE);
 	} catch(...) {
