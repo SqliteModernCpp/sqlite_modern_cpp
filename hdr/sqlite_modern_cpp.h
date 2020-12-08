@@ -109,6 +109,10 @@ namespace sqlite {
 				errors::throw_sqlite_error(hresult, sql());
 			}
 		}
+		void endr() {
+		  execute();
+		  reset();
+		}
 		
 		std::string sql() {
 #if SQLITE_VERSION_NUMBER >= 3014000
@@ -312,6 +316,10 @@ namespace sqlite {
 			});
 		}
 	};
+
+	inline void endr(database_binder& db) {
+	  db.endr();
+	}
 
 	namespace sql_function_binder {
 		template<
@@ -802,6 +810,24 @@ namespace sqlite {
 		val = i;
 	}
 
+	 /// apply a member function
+	 inline database_binder& operator <<(database_binder& db, void (database_binder::* pf)(void)) {
+	   (db.*pf)();
+	   return db;
+	 }
+
+	 /// apply a function pointer
+	 inline database_binder& operator<< (database_binder& db, void (*fun)(database_binder*)) {
+	   fun(&db);
+	   return db;
+	 }
+
+	 /// apply a lambda
+	 inline database_binder& operator<< (database_binder& db, std::function<void(database_binder&)>f) {
+	   f(db);
+	   return db;
+	 }
+
 	// std::optional support for NULL values
 #ifdef MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 	template <typename OptionalT> inline database_binder& operator <<(database_binder& db, const optional<OptionalT>& val) {
@@ -906,6 +932,7 @@ namespace sqlite {
 
 	// Some ppl are lazy so we have a operator for proper prep. statemant handling.
 	void inline operator++(database_binder& db, int) { db.execute(); }
+
 
 	// Convert the rValue binder to a reference and call first op<<, its needed for the call that creates the binder (be carefull of recursion here!)
 	template<typename T> database_binder&& operator << (database_binder&& db, const T& val) { db << val; return std::move(db); }
