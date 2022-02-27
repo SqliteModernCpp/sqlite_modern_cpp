@@ -5,12 +5,12 @@
 #include <memory>
 #include <vector>
 #ifdef __has_include
-#if (__cplusplus >= 201703 || _MSVC_LANG >= 201703) && __has_include(<string_view>)
+#if (__cplusplus >= 201703 || _MSC_VER >= 1911) && __has_include(<string_view>)
 #define MODERN_SQLITE_STRINGVIEW_SUPPORT
 #endif
 #endif
 #ifdef __has_include
-#if (__cplusplus > 201402 || _MSCV_LANG > 201402) && __has_include(<optional>)
+#if (__cplusplus > 201402 || _MSC_VER > 1900) && __has_include(<optional>)
 #define MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 #elif __has_include(<experimental/optional>) && __apple_build_version__ < 11000000
 #define MODERN_SQLITE_EXPERIMENTAL_OPTIONAL_SUPPORT
@@ -18,7 +18,7 @@
 #endif
 
 #ifdef __has_include
-#if (__cplusplus > 201402 || _MSVC_LANG > 201402) && __has_include(<variant>)
+#if (__cplusplus > 201402 || _MSC_VER > 1900) && __has_include(<variant>)
 #define MODERN_SQLITE_STD_VARIANT_SUPPORT
 #endif
 #endif
