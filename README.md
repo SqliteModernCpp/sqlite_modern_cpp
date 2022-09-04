@@ -330,6 +330,8 @@ If the optional library is not available, the experimental/optional one will be 
 
 **Note: boost support is deprecated and will be removed in future versions.**
 
+If you do have C++17 support, you also must define the macro `MODERN_SQLITE_STD_OPTIONAL_SUPPORT` before importing the `sqlite_modern_cpp` header.
+
 Variant type support (C++17)
 ----
 If your columns may have flexible types, you can use C++17's `std::variant` to extract the value.
