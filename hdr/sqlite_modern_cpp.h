@@ -814,8 +814,9 @@ namespace sqlite {
 	template <typename OptionalT> inline void store_result_in_db(sqlite3_context* db, const optional<OptionalT>& val) {
 		if(val) {
 			store_result_in_db(db, *val);
+		} else {
+			sqlite3_result_null(db);
 		}
-		sqlite3_result_null(db);
 	}
 
 	template <typename OptionalT> inline void get_col_from_db(database_binder& db, int inx, optional<OptionalT>& o) {
@@ -858,8 +859,9 @@ namespace sqlite {
 	template <typename BoostOptionalT> inline void store_result_in_db(sqlite3_context* db, const boost::optional<BoostOptionalT>& val) {
 		if(val) {
 			store_result_in_db(db, *val);
+		} else {
+			sqlite3_result_null(db);
 		}
-		sqlite3_result_null(db);
 	}
 
 	template <typename BoostOptionalT> inline void get_col_from_db(database_binder& db, int inx, boost::optional<BoostOptionalT>& o) {
