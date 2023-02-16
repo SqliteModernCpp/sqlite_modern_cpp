@@ -11,8 +11,8 @@ include("cmake/HunterGate.cmake")
 include("cmake/Catch.cmake")
 
 HunterGate(
-    URL "https://github.com/cpp-pm/hunter/archive/v0.24.0.tar.gz"
-    SHA1 "a3d7f4372b1dcd52faa6ff4a3bd5358e1d0e5efd"
+    URL "https://github.com/cpp-pm/hunter/archive/v0.24.15.tar.gz"
+    SHA1 "8010d63d5ae611c564889d5fe12d3cb7a45703ac"
 )
 
 project(SqliteModernCpp)
