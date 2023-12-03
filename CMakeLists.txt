@@ -23,7 +23,7 @@ hunter_add_package(sqlite3)
 find_package(Catch2 CONFIG REQUIRED)
 find_package(sqlite3 CONFIG REQUIRED)
 
-set(TEST_SOURCE_DIR             ${CMAKE_SOURCE_DIR}/tests)
+set(TEST_SOURCE_DIR             ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 file(GLOB TEST_SOURCES          ${TEST_SOURCE_DIR}/*.cc)
 
 IF(NOT ENABLE_SQLCIPHER_TESTS)
