@@ -130,11 +130,11 @@ namespace sqlite {
 	}
 	inline float get_col_from_db(sqlite3_stmt* stmt, int inx, result_type<float>) {
 		return sqlite3_column_type(stmt, inx) == SQLITE_NULL ? 0 :
-			sqlite3_column_double(stmt, inx);
+			static_cast<float>(sqlite3_column_double(stmt, inx));
 	}
 	inline float get_val_from_db(sqlite3_value *value, result_type<float>) {
 		return sqlite3_value_type(value) == SQLITE_NULL ? 0 :
-			sqlite3_value_double(value);
+			static_cast<float>(sqlite3_value_double(value));
 	}
 
 	// double
