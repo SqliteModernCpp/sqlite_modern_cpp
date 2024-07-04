@@ -42,7 +42,6 @@
 #     * https://github.com/hunter-packages/gate/
 #     * https://github.com/ruslo/hunter
 
-option(HUNTER_ENABLED "Enable Hunter package manager support" ON)
 if(HUNTER_ENABLED)
   if(CMAKE_VERSION VERSION_LESS "3.0")
     message(FATAL_ERROR "At least CMake version 3.0 required for hunter dependency management."
