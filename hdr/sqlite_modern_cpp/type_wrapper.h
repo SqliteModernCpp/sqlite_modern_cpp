@@ -128,13 +128,13 @@ namespace sqlite {
 	inline void store_result_in_db(sqlite3_context* db, const float& val) {
 		sqlite3_result_double(db, val);
 	}
-	inline float get_col_from_db(sqlite3_stmt* stmt, int inx, result_type<float>) {
-		return sqlite3_column_type(stmt, inx) == SQLITE_NULL ? 0 :
-			sqlite3_column_double(stmt, inx);
+	inline float get_col_from_db(sqlite3_stmt* stmt, int inx, result_type<float>)
+	{
+		return static_cast<float>(sqlite3_column_type(stmt, inx) == SQLITE_NULL ? 0 : sqlite3_column_double(stmt, inx));
 	}
-	inline float get_val_from_db(sqlite3_value *value, result_type<float>) {
-		return sqlite3_value_type(value) == SQLITE_NULL ? 0 :
-			sqlite3_value_double(value);
+	inline float get_val_from_db(sqlite3_value *value, result_type<float>)
+	{
+		return static_cast<float>(sqlite3_value_type(value) == SQLITE_NULL ? 0 : sqlite3_value_double(value));
 	}
 
 	// double
@@ -189,7 +189,7 @@ namespace sqlite {
 	template<>
 	struct has_sqlite_type<std::string, SQLITE3_TEXT, void> : std::true_type {};
 	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, str_ref val) {
-		return sqlite3_bind_text(stmt, inx, val.data(), val.length(), SQLITE_TRANSIENT);
+		return sqlite3_bind_text(stmt, inx, val.data(), static_cast<int>(val.length()), SQLITE_TRANSIENT);
 	}
 
 	// Convert char* to string_view to trigger op<<(..., const str_ref )
@@ -215,13 +215,13 @@ namespace sqlite {
 	}
 
 	inline void store_result_in_db(sqlite3_context* db, str_ref val) {
-		sqlite3_result_text(db, val.data(), val.length(), SQLITE_TRANSIENT);
+		sqlite3_result_text(db, val.data(), static_cast<int>(val.length()), SQLITE_TRANSIENT);
 	}
 	// u16str_ref
 	template<>
 	struct has_sqlite_type<std::u16string, SQLITE3_TEXT, void> : std::true_type {};
 	inline int bind_col_in_db(sqlite3_stmt* stmt, int inx, u16str_ref val) {
-		return sqlite3_bind_text16(stmt, inx, val.data(), sizeof(char16_t) * val.length(), SQLITE_TRANSIENT);
+		return sqlite3_bind_text16(stmt, inx, val.data(), sizeof(char16_t) * static_cast<int>(val.length()), SQLITE_TRANSIENT);
 	}
 
 	// Convert char* to string_view to trigger op<<(..., const str_ref )
@@ -246,7 +246,7 @@ namespace sqlite {
 	}
 
 	inline void store_result_in_db(sqlite3_context* db, u16str_ref val) {
-		sqlite3_result_text16(db, val.data(), sizeof(char16_t) * val.length(), SQLITE_TRANSIENT);
+		sqlite3_result_text16(db, val.data(), sizeof(char16_t) * static_cast<int>(val.length()), SQLITE_TRANSIENT);
 	}
 
 	// Other integer types

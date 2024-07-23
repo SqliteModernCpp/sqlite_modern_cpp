@@ -112,9 +112,10 @@ namespace sqlite {
 			int hresult;
 			sqlite3_stmt* tmp = nullptr;
 			const char *remaining;
-			hresult = sqlite3_prepare_v2(_db.get(), sql.data(), sql.length(), &tmp, &remaining);
-			if(hresult != SQLITE_OK) errors::throw_sqlite_error(hresult, sql, sqlite3_errmsg(_db.get()));
-			if(!std::all_of(remaining, sql.data() + sql.size(), [](char ch) {return std::isspace(ch);}))
+			hresult = sqlite3_prepare_v2(_db.get(), sql.data(), static_cast<int>(sql.length()), &tmp, &remaining);
+			if (hresult != SQLITE_OK)
+				errors::throw_sqlite_error(hresult, sql, sqlite3_errmsg(_db.get()));
+			if (!std::all_of(remaining, sql.data() + sql.size(), [](char ch) {return std::isspace(ch); }))
 				throw errors::more_statements("Multiple semicolon separated statements are unsupported", sql);
 			return tmp;
 		}
