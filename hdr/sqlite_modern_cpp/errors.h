@@ -48,7 +48,7 @@ namespace sqlite {
 				case SQLITE_ ## NAME: switch(error_code) {          \
 					derived                                           \
 					case SQLITE_ ## NAME:                             \
-					default: throw name(error_code, sql);             \
+					default: throw name(error_code, sql, errmsg);     \
 				}
 
 #if SQLITE_VERSION_NUMBER < 3010000
