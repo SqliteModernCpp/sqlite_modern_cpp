@@ -177,10 +177,10 @@ namespace sqlite {
 	inline void store_result_in_db(sqlite3_context* db, std::monostate) {
 		sqlite3_result_null(db);
 	}
-	inline std::monostate get_col_from_db(sqlite3_stmt* stmt, int inx, result_type<std::monostate>) {
+	inline std::monostate get_col_from_db(sqlite3_stmt*, int, result_type<std::monostate>) {
 		return std::monostate();
 	}
-	inline std::monostate get_val_from_db(sqlite3_value *value, result_type<std::monostate>) {
+	inline std::monostate get_val_from_db(sqlite3_value *, result_type<std::monostate>) {
 		return std::monostate();
 	}
 #endif
